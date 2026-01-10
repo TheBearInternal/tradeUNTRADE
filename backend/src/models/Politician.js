@@ -12,7 +12,7 @@ class Politician {
    * @param {Object} pagination - Pagination options
    * @returns {Promise<Array>} Array of politicians
    */
-  static async findAll(filters = {}, pagination = { limit: 50, offset: 0 }) {
+  static async findAll(filters = {}, pagination = { limit: 50, offset: 0, sortBy = 'name', sortOrder = 'ASC' }) {
     try {
       const conditions = [];
       const values = [];
@@ -20,23 +20,31 @@ class Politician {
 
       // Build WHERE clause from filters
       if (filters.office) {
-        conditions.push(`office = $${paramIndex++}`);
+        conditions.push(`p.office = $${paramIndex++}`);
         values.push(filters.office);
       }
       if (filters.party) {
-        conditions.push(`party = $${paramIndex++}`);
+        conditions.push(`p.party = $${paramIndex++}`);
         values.push(filters.party);
       }
       if (filters.state) {
-        conditions.push(`state = $${paramIndex++}`);
+        conditions.push(`p.state = $${paramIndex++}`);
         values.push(filters.state);
       }
       if (filters.is_active !== undefined) {
-        conditions.push(`is_active = $${paramIndex++}`);
+        conditions.push(`p.is_active = $${paramIndex++}`);
         values.push(filters.is_active);
       }
 
       const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+
+      // Determine sort column
+      let orderByClause;
+      if (pagination.sortBy === 'trades') {
+        orderByClause = `ORDER BY transaction_count ${pagination.sortOrder}, p.last_name ASC`;
+      } else {
+        orderByClause = `ORDER BY p.last_name ${pagination.sortOrder}, p.first_name ${pagination.sortOrder}`;
+      }
 
       // Add pagination
       const limitClause = `LIMIT $${paramIndex++}`;
@@ -44,9 +52,14 @@ class Politician {
       values.push(pagination.limit, pagination.offset);
 
       const sql = `
-        SELECT * FROM politicians
+        SELECT
+          p.*,
+          COUNT(t.id) as transaction_count
+        FROM politicians p
+        LEFT JOIN transactions t ON p.id = t.politician_id
         ${whereClause}
-        ORDER BY last_name, first_name
+        GROUP BY p.id
+        ${orderByClause}
         ${limitClause} ${offsetClause}
       `;
 

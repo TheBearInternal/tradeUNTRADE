@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import PoliticiansPage from './pages/PoliticiansPage';
 
 function App() {
   return (
@@ -16,6 +17,18 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/politicians" element={<PoliticiansPage />} />
+              {/* Politician detail page - to be built */}
+              <Route path="/politicians/:id" element={
+                <div className="text-center py-12">
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
+                    Politician Detail Page
+                  </h1>
+                  <p className="text-gray-600 dark:text-gray-400">
+                    This page is under construction.
+                  </p>
+                </div>
+              } />
               {/* Add more routes as needed */}
               <Route path="*" element={
                 <div className="text-center py-12">

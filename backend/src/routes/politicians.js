@@ -22,7 +22,7 @@ router.get(
   cacheMiddleware(getCacheTTL('politicians'), cacheKeyGenerators.politicians),
   async (req, res) => {
     try {
-      const { office, party, state } = req.query;
+      const { office, party, state, sortBy = 'name', sortOrder = 'ASC' } = req.query;
 
       const filters = {};
       if (office) filters.office = office;
@@ -30,8 +30,20 @@ router.get(
       if (state) filters.state = state.toUpperCase();
       filters.is_active = true;
 
+      // Validate sort parameters
+      const validSortBy = ['name', 'trades'];
+      const validSortOrder = ['ASC', 'DESC'];
+      const sanitizedSortBy = validSortBy.includes(sortBy) ? sortBy : 'name';
+      const sanitizedSortOrder = validSortOrder.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'ASC';
+
+      const paginationOptions = {
+        ...req.pagination,
+        sortBy: sanitizedSortBy,
+        sortOrder: sanitizedSortOrder
+      };
+
       const [politicians, total] = await Promise.all([
-        Politician.findAll(filters, req.pagination),
+        Politician.findAll(filters, paginationOptions),
         Politician.count(filters)
       ]);
 
