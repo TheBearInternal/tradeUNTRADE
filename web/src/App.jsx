@@ -5,6 +5,7 @@ import Layout from './components/Layout';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import PoliticianDetailPage from './pages/PoliticianDetailPage';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              <Route path="/politicians/:id" element={<PoliticianDetailPage />} />
               {/* Add more routes as needed */}
               <Route path="*" element={
                 <div className="text-center py-12">
