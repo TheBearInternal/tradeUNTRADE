@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import PoliticiansPage from './pages/PoliticiansPage';
+import PoliticianDetailPage from './pages/PoliticianDetailPage';
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+<<<<<<< HEAD
               <Route path="/politicians" element={<PoliticiansPage />} />
               {/* Politician detail page - to be built */}
               <Route path="/politicians/:id" element={
@@ -29,6 +31,9 @@ function App() {
                   </p>
                 </div>
               } />
+=======
+              <Route path="/politicians/:id" element={<PoliticianDetailPage />} />
+>>>>>>> origin/claude/politician-detail-page-4EYKA
               {/* Add more routes as needed */}
               <Route path="*" element={
                 <div className="text-center py-12">
