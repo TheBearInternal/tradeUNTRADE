@@ -17,7 +17,7 @@ DB_CONFIG = {
     'port': int(os.getenv('DB_PORT', 5432)),
     'database': os.getenv('DB_NAME', 'congressional_trading'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD', ''),
+    'password': os.getenv('DB_PASSWORD', 'SimplePass123'),
 }
 
 # Connection pool

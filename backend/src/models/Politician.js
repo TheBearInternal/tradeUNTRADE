@@ -12,8 +12,9 @@ class Politician {
    * @param {Object} pagination - Pagination options
    * @returns {Promise<Array>} Array of politicians
    */
-  static async findAll(filters = {}, pagination = { limit: 50, offset: 0, sortBy = 'name', sortOrder = 'ASC' }) {
+  static async findAll(filters = {}, { limit = 50, offset = 0, sortBy = 'name', sortOrder = 'ASC' } = {}) {
     try {
+      console.log('🔍 DEBUG findAll called:', { filters, limit, offset, sortBy, sortOrder }); 
       const conditions = [];
       const values = [];
       let paramIndex = 1;
@@ -39,17 +40,17 @@ class Politician {
       const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
 
       // Determine sort column
-      let orderByClause;
-      if (pagination.sortBy === 'trades') {
-        orderByClause = `ORDER BY transaction_count ${pagination.sortOrder}, p.last_name ASC`;
-      } else {
-        orderByClause = `ORDER BY p.last_name ${pagination.sortOrder}, p.first_name ${pagination.sortOrder}`;
-      }
+let orderByClause;  // ← ADD THIS LINE!
+if (sortBy === 'trades') {
+  orderByClause = `ORDER BY transaction_count ${sortOrder}, p.last_name ASC`;
+} else {
+  orderByClause = `ORDER BY p.last_name ${sortOrder}, p.first_name ${sortOrder}`;
+}
 
       // Add pagination
       const limitClause = `LIMIT $${paramIndex++}`;
       const offsetClause = `OFFSET $${paramIndex++}`;
-      values.push(pagination.limit, pagination.offset);
+      values.push(limit, offset);
 
       const sql = `
         SELECT
@@ -66,6 +67,7 @@ class Politician {
       const result = await query(sql, values);
       return result.rows;
     } catch (error) {
+console.error('💥 ACTUAL ERROR:', error);
       logger.error('Error finding politicians', { error: error.message, filters });
       throw error;
     }

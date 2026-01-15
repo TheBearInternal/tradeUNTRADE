@@ -19,7 +19,7 @@ router.get(
   validationRules.politicianFilters,
   validate,
   sanitizePagination,
-  cacheMiddleware(getCacheTTL('politicians'), cacheKeyGenerators.politicians),
+  //cacheMiddleware(getCacheTTL('politicians'), cacheKeyGenerators.politicians),
   async (req, res) => {
     try {
       const { office, party, state, sortBy = 'name', sortOrder = 'ASC' } = req.query;
@@ -84,10 +84,15 @@ router.get(
       const politicians = await Politician.search(q, parseInt(limit));
 
       res.json({
-        success: true,
-        data: politicians,
-        count: politicians.length
-      });
+  success: true,
+  data: politicians,
+  pagination: {  // ← This should be here now!
+    page: 1,
+    limit: parseInt(limit),
+    total: politicians.length,
+    totalPages: 1
+  }
+});
     } catch (error) {
       logger.error('Error searching politicians', { error: error.message, query: req.query.q });
       res.status(500).json({
@@ -108,7 +113,7 @@ router.get(
   dynamicRateLimiter,
   validationRules.politicianId,
   validate,
-  cacheMiddleware(getCacheTTL('politicians'), cacheKeyGenerators.politicianDetail),
+  //cacheMiddleware(getCacheTTL('politicians'), cacheKeyGenerators.politicianDetail),
   async (req, res) => {
     try {
       const { id } = req.params;

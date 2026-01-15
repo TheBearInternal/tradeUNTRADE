@@ -115,11 +115,20 @@ const createRateLimiter = (tier = 'free') => {
 };
 
 /**
+ * Cache of rate limiters by tier
+ */
+const limiterCache = {
+  free: createRateLimiter('free'),
+  pro: createRateLimiter('pro'),
+  premium: createRateLimiter('premium')
+};
+
+/**
  * Dynamic rate limiter based on user's subscription tier
  */
 const dynamicRateLimiter = (req, res, next) => {
   const tier = req.user?.subscription_tier || 'free';
-  const limiter = createRateLimiter(tier);
+  const limiter = limiterCache[tier] || limiterCache.free;
   limiter(req, res, next);
 };
 
