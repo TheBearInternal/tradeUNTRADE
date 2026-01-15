@@ -18,22 +18,8 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
-<<<<<<< HEAD
               <Route path="/politicians" element={<PoliticiansPage />} />
-              {/* Politician detail page - to be built */}
-              <Route path="/politicians/:id" element={
-                <div className="text-center py-12">
-                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
-                    Politician Detail Page
-                  </h1>
-                  <p className="text-gray-600 dark:text-gray-400">
-                    This page is under construction.
-                  </p>
-                </div>
-              } />
-=======
               <Route path="/politicians/:id" element={<PoliticianDetailPage />} />
->>>>>>> origin/claude/politician-detail-page-4EYKA
               {/* Add more routes as needed */}
               <Route path="*" element={
                 <div className="text-center py-12">
