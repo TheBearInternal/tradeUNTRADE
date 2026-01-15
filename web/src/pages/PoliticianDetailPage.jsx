@@ -47,10 +47,12 @@ const PoliticianDetailPage = () => {
       setError(null);
 
       const response = await politiciansAPI.getById(id);
-      const data = response.data.data;
+const data = response.data.data;
 
-      setPolitician(data.politician);
-      setStats(data.stats);
+// Extract stats, rest is politician data
+const { stats: statsData, ...politicianData } = data;
+setPolitician(politicianData);
+setStats(statsData);
     } catch (err) {
       console.error('Failed to load politician:', err);
       setError('Failed to load politician details. Please try again.');
