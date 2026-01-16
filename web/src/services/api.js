@@ -101,6 +101,7 @@ export const alertsAPI = {
 
 // Analytics API
 export const analyticsAPI = {
+  getAnalytics: () => api.get('/analytics'),
   getTrending: (period = '7d', limit = 10) =>
     api.get('/analytics/trending', { params: { period, limit } }),
   getSectors: (period = '30d') =>
