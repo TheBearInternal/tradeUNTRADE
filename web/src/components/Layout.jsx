@@ -11,7 +11,7 @@ const Layout = ({ children }) => {
   const navigation = [
     { name: 'Home', path: '/', icon: FiHome },
     { name: 'Politicians', path: '/politicians', icon: FiUsers },
-    { name: 'Stocks', path: '/assets', icon: FiTrendingUp },
+    { name: 'Stocks', path: '/stocks', icon: FiTrendingUp },
     { name: 'Analytics', path: '/analytics', icon: FiBarChart2 },
   ];
 

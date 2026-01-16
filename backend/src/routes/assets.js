@@ -17,7 +17,7 @@ router.get(
   optionalAuthenticate,
   dynamicRateLimiter,
   sanitizePagination,
-  cacheMiddleware(getCacheTTL('assets')),
+  //cacheMiddleware(getCacheTTL('assets')),
   async (req, res) => {
     try {
       const { asset_type, sector, exchange } = req.query;
