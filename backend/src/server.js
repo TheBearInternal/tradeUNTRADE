@@ -9,6 +9,7 @@ const { client: redisClient } = require('./config/redis');
 
 // Import routes
 const authRoutes = require('./routes/auth');
+const usersRoutes = require('./routes/users');
 const politiciansRoutes = require('./routes/politicians');
 const transactionsRoutes = require('./routes/transactions');
 const assetsRoutes = require('./routes/assets');
@@ -94,6 +95,7 @@ app.get('/health', async (req, res) => {
 
 // API routes
 app.use(`/api/${API_VERSION}/auth`, authRoutes);
+app.use(`/api/${API_VERSION}/users`, usersRoutes);
 app.use(`/api/${API_VERSION}/politicians`, politiciansRoutes);
 app.use(`/api/${API_VERSION}/transactions`, transactionsRoutes);
 app.use(`/api/${API_VERSION}/assets`, assetsRoutes);
@@ -109,6 +111,7 @@ app.get('/', (req, res) => {
     endpoints: {
       health: '/health',
       auth: `/api/${API_VERSION}/auth`,
+      users: `/api/${API_VERSION}/users`,
       politicians: `/api/${API_VERSION}/politicians`,
       transactions: `/api/${API_VERSION}/transactions`,
       assets: `/api/${API_VERSION}/assets`,

@@ -9,6 +9,7 @@ import PoliticiansPage from './pages/PoliticiansPage';
 import PoliticianDetailPage from './pages/PoliticianDetailPage';
 import StocksPage from './pages/StocksPage';
 import AnalyticsPage from './pages/AnalyticsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
               <Route path="/politicians/:id" element={<PoliticianDetailPage />} />
               <Route path="/stocks" element={<StocksPage />} />
               <Route path="/analytics" element={<AnalyticsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
               {/* Add more routes as needed */}
               <Route path="*" element={
                 <div className="text-center py-12">

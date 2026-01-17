@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FiHome, FiUsers, FiTrendingUp, FiBarChart2, FiBell, FiMoon, FiSun, FiLogOut, FiLogIn } from 'react-icons/fi';
+import { FiHome, FiUsers, FiTrendingUp, FiBarChart2, FiBell, FiMoon, FiSun, FiLogOut, FiLogIn, FiUser } from 'react-icons/fi';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -95,6 +95,13 @@ const Layout = ({ children }) => {
                         {user?.subscription_tier || 'Free'}
                       </p>
                     </div>
+                    <Link
+                      to="/profile"
+                      className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                      title="Profile"
+                    >
+                      <FiUser className="w-5 h-5" />
+                    </Link>
                     <button
                       onClick={logout}
                       className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
