@@ -19,6 +19,7 @@ class User {
       const sql = `
         SELECT id, email, username, full_name, avatar_url, subscription_tier,
                subscription_expires_at, email_verified, two_factor_enabled,
+               email_notifications, default_view,
                created_at, last_login_at, is_active
         FROM users
         WHERE id = $1
@@ -56,7 +57,8 @@ class User {
     try {
       const sql = `
         SELECT id, email, username, full_name, avatar_url, subscription_tier,
-               subscription_expires_at, email_verified, created_at, is_active
+               subscription_expires_at, email_verified, email_notifications, default_view,
+               created_at, is_active
         FROM users
         WHERE username = $1
       `;
@@ -81,7 +83,7 @@ class User {
       const sql = `
         INSERT INTO users (email, username, password_hash, full_name)
         VALUES ($1, $2, $3, $4)
-        RETURNING id, email, username, full_name, subscription_tier, created_at
+        RETURNING id, email, username, full_name, subscription_tier, email_notifications, default_view, created_at
       `;
       const values = [
         data.email.toLowerCase(),
@@ -145,7 +147,7 @@ class User {
    */
   static async update(id, data) {
     try {
-      const allowedFields = ['full_name', 'avatar_url', 'email_verified', 'two_factor_enabled', 'is_active'];
+      const allowedFields = ['full_name', 'avatar_url', 'email_verified', 'two_factor_enabled', 'is_active', 'email_notifications', 'default_view'];
       const updates = [];
       const values = [];
       let paramIndex = 1;
@@ -174,7 +176,8 @@ class User {
         SET ${updates.join(', ')}
         WHERE id = $${paramIndex}
         RETURNING id, email, username, full_name, avatar_url, subscription_tier,
-                  subscription_expires_at, email_verified, two_factor_enabled, is_active
+                  subscription_expires_at, email_verified, two_factor_enabled,
+                  email_notifications, default_view, is_active
       `;
 
       const result = await query(sql, values);

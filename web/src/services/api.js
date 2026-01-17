@@ -113,4 +113,14 @@ export const analyticsAPI = {
     api.get('/analytics/timeline', { params: { period } }),
 };
 
+// Users API
+export const usersAPI = {
+  changePassword: (currentPassword, newPassword) =>
+    api.patch('/users/password', { currentPassword, newPassword }),
+  updatePreferences: (preferences) =>
+    api.patch('/users/preferences', preferences),
+  deleteAccount: () =>
+    api.delete('/users/account'),
+};
+
 export default api;
