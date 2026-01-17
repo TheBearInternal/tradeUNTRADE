@@ -8,6 +8,124 @@ const { cacheMiddleware, cacheKeyGenerators, getCacheTTL } = require('../middlew
 const logger = require('../utils/logger');
 
 /**
+ * GET /api/v1/analytics
+ * Get comprehensive analytics dashboard data
+ */
+router.get(
+  '/',
+  optionalAuthenticate,
+  dynamicRateLimiter,
+  cacheMiddleware(getCacheTTL('analytics'), cacheKeyGenerators.analytics),
+  async (req, res) => {
+    try {
+      // 1. Overview Stats
+      const [politiciansCount, transactionsCount] = await Promise.all([
+        query('SELECT COUNT(*) as count FROM politicians'),
+        query('SELECT COUNT(*) as count FROM transactions')
+      ]);
+
+      // Most active trader (this week)
+      const mostActiveTrader = await query(`
+        SELECT p.id, p.full_name, COUNT(t.id) as trade_count
+        FROM politicians p
+        LEFT JOIN transactions t ON p.id = t.politician_id
+        WHERE t.transaction_date >= CURRENT_DATE - INTERVAL '7 days'
+        GROUP BY p.id, p.full_name
+        ORDER BY trade_count DESC
+        LIMIT 1
+      `);
+
+      // Most traded stock (this week) - FIXED JOIN
+      const mostTradedStock = await query(`
+        SELECT a.ticker, a.asset_name, COUNT(t.id) as trade_count
+        FROM assets a
+        LEFT JOIN transactions t ON a.id = t.asset_id
+        WHERE t.transaction_date >= CURRENT_DATE - INTERVAL '7 days'
+        GROUP BY a.ticker, a.asset_name
+        ORDER BY trade_count DESC
+        LIMIT 1
+      `);
+
+      // 2. Top Traders (all time)
+      const topTraders = await query(`
+        SELECT 
+          p.id,
+          p.full_name,
+          p.party,
+          COUNT(t.id) as total_trades,
+          MAX(t.transaction_date) as latest_transaction
+        FROM politicians p
+        LEFT JOIN transactions t ON p.id = t.politician_id
+        GROUP BY p.id, p.full_name, p.party
+        ORDER BY total_trades DESC
+        LIMIT 10
+      `);
+
+      // 3. Most Traded Stocks - FIXED JOIN
+      const mostTradedStocks = await query(`
+        SELECT 
+          a.ticker,
+          a.asset_name,
+          a.sector,
+          COUNT(t.id) as transaction_count,
+          COUNT(DISTINCT t.politician_id) as politician_count
+        FROM assets a
+        LEFT JOIN transactions t ON a.id = t.asset_id
+        GROUP BY a.ticker, a.asset_name, a.sector
+        ORDER BY transaction_count DESC
+        LIMIT 10
+      `);
+
+      // 4. Party Comparison
+      const partyStats = await query(`
+        SELECT 
+          p.party,
+          COUNT(t.id) as total_trades,
+          COUNT(DISTINCT p.id) as politician_count
+        FROM politicians p
+        LEFT JOIN transactions t ON p.id = t.politician_id
+        WHERE p.party IN ('Democrat', 'Republican')
+        GROUP BY p.party
+      `);
+
+      // 5. Sector Breakdown - FIXED JOIN
+      const sectorStats = await query(`
+        SELECT 
+          a.sector,
+          COUNT(t.id) as transaction_count
+        FROM assets a
+        LEFT JOIN transactions t ON a.id = t.asset_id
+        WHERE a.sector IS NOT NULL
+        GROUP BY a.sector
+        ORDER BY transaction_count DESC
+      `);
+
+      // Format response
+      const analytics = {
+        overview: {
+          totalPoliticians: parseInt(politiciansCount.rows[0]?.count) || 0,
+          totalTransactions: parseInt(transactionsCount.rows[0]?.count) || 0,
+          mostActiveTrader: mostActiveTrader.rows[0] || null,
+          mostTradedStock: mostTradedStock.rows[0] || null
+        },
+        topTraders: topTraders.rows || [],
+        mostTradedStocks: mostTradedStocks.rows || [],
+        partyComparison: partyStats.rows || [],
+        sectorBreakdown: sectorStats.rows || []
+      };
+
+      res.json(analytics);
+    } catch (error) {
+      logger.error('Error fetching analytics dashboard', { error: error.message });
+      res.status(500).json({
+        success: false,
+        error: 'Failed to fetch analytics dashboard'
+      });
+    }
+  }
+);
+
+/**
  * GET /api/v1/analytics/trending
  * Get trending trades and politicians
  */
