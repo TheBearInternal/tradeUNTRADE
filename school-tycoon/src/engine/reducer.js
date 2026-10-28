@@ -12,7 +12,7 @@ import {
   canBuild, roomAvailability, earlyUnlocksLeft, tierProgress, selectCanHire, itemAvailability, canPlaceItem,
 } from './selectors.js';
 import { starterInterior, nextItemId } from './interior.js';
-import { pushLog, isInt } from './util.js';
+import { pushLog, isInt, own } from './util.js';
 
 const B = BALANCE;
 const log = (g, text, kind) => pushLog(g, text, kind, B.logSize);
@@ -208,7 +208,7 @@ const H = {
     const seed = a.seed === undefined || a.seed === null ? game.seed + 1 : a.seed;
     if (!Number.isFinite(Number(seed))) return null;
     const sid = a.scenarioId === undefined ? null : a.scenarioId;
-    if (sid !== null && sid !== SANDBOX_ID && !SCENARIOS[sid]) return null;
+    if (sid !== null && sid !== SANDBOX_ID && !own(SCENARIOS, sid)) return null;
     const schools = (ledger.schools || 1) + 1;
     return { game: createInitialGame(seed, sid, schools), ledger: { ...ledger, schools } };
   },

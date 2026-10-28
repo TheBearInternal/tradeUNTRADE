@@ -5,6 +5,7 @@ import { createInitialLedger } from './ledger.js';
 import { starterInteriors } from './interior.js';
 import { initialWeekly } from './weekly.js';
 import { xpForLevel } from './model.js';
+import { own } from './util.js';
 
 export const GAME_VERSION = 2;
 
@@ -91,7 +92,7 @@ export function createInitialGame(seed = 12345, scenarioId = null, schoolNo = 1)
     g.level = MAX_LEVEL;
     g.xp = xpForLevel(MAX_LEVEL);
     g.log = [{ day: 0, text: 'Sandbox: unlimited cash, everything unlocked. No medals, achievements or Apples.', kind: 'info' }];
-  } else if (scenarioId && SCENARIOS[scenarioId]) {
+  } else if (scenarioId && own(SCENARIOS, scenarioId)) {
     const sc = SCENARIOS[scenarioId];
     const tier = sc.tier || 1;
     g = baseGame(s, sc.size || TIERS[tier].size, tier);

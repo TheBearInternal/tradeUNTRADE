@@ -137,6 +137,12 @@ export function deserialize(data) {
   const rawGame = parse(src.game);
   const rawLedger = parse(src.ledger);
   const ledger = rawLedger ? normalizeLedger(migrate(rawLedger, LEDGER_VERSION, LEDGER_MIGRATIONS, 'ledger')) : createInitialLedger();
+  if (!rawGame && rawLedger) {
+    // A fresh school on a salvaged ledger gets the next school number, so its weekly-goal
+    // credit keys (goal:<schoolNo>.<week>:<i>) cannot collide with an earlier school's.
+    const schools = ledger.schools + 1;
+    return { game: createInitialGame(undefined, null, schools), ledger: { ...ledger, schools } };
+  }
   const game = rawGame ? normalizeGame(migrate(rawGame, GAME_VERSION, GAME_MIGRATIONS, 'game')) : createInitialGame();
   return { game, ledger };
 }

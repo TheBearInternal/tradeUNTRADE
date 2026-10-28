@@ -1,5 +1,7 @@
 export const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
 export const isInt = (v) => typeof v === 'number' && Number.isInteger(v);
+// Own-key lookup guard: config maps are plain objects, so ids like 'constructor' must not resolve.
+export const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 export const idNum = (id) => {
   const n = parseInt(String(id).slice(1), 10);
   return Number.isFinite(n) ? n : 0;

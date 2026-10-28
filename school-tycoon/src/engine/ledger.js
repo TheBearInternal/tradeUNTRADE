@@ -1,5 +1,6 @@
 // Premium-currency ledger. Every credit carries a unique key; duplicate keys are no-ops.
 import { PRODUCTS, COSMETICS, BALANCE, DEFAULT_EQUIPPED } from './config/index.js';
+import { own } from './util.js';
 
 export const LEDGER_VERSION = 2;
 
@@ -41,7 +42,7 @@ export function debit(ledger, amount) {
 export function applyReceipt(ledger, receipt) {
   if (!receipt || typeof receipt !== 'object') return ledger;
   const { txId, productId } = receipt;
-  const product = PRODUCTS[productId];
+  const product = own(PRODUCTS, productId) ? PRODUCTS[productId] : null;
   if (!product || (typeof txId !== 'string' && typeof txId !== 'number') || txId === '') return ledger;
   const key = `tx:${txId}`;
   if (ledger.credited[key]) return ledger;

@@ -47,6 +47,7 @@ export function applyChoice(g, ledger, choiceId) {
   const pack = EVENTS[ev.id];
   if (pack) {
     const choice = pack.choices.find((c) => c.id === choiceId);
+    if (!choice) { g.event = null; return L; } // stale saved choice id: close the event, never throw
     let mult = 1;
     for (const rm of pack.rewardMult || []) if (evalCond(g, rm.cond)) mult = Math.max(mult, rm.mult);
     g.event = null;

@@ -9,6 +9,7 @@ import { computePnL, computeRating, xpForLevel, hasNurseCare, hasCounselor, tuit
 import { loginReward } from './ledger.js';
 import { checkItemGeometry, itemSize } from './interior.js';
 import { medalFor } from './scenario.js';
+import { own } from './util.js';
 
 export function selectDerived(root) {
   return computeDerivedView(root.game);
@@ -182,9 +183,10 @@ export function selectTuitionPerStudent(root) {
 // Hire availability: { ok, reason: null|'tier'|'level'|'role'|'limit', salary, skill }.
 export function selectCanHire(root, role, grade) {
   const g = root.game;
-  const r = STAFF[role];
+  const r = own(STAFF, role) ? STAFF[role] : null;
   if (!r) return { ok: false, reason: 'role', salary: 0, skill: 0 };
-  const spec = role === 'teacher' ? r.grades[grade] : r.grades.standard;
+  const gid = role === 'teacher' ? grade : 'standard';
+  const spec = own(r.grades, gid) ? r.grades[gid] : null;
   if (!spec) return { ok: false, reason: 'role', salary: 0, skill: 0 };
   let reason = null;
   if (spec.tier > g.tier) reason = 'tier';
