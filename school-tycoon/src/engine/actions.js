@@ -1,0 +1,20 @@
+// Action creators (ENGINE_API.md "Actions").
+export const actions = {
+  tick: (n = 1) => ({ type: 'tick', n }),
+  build: (type, x, y) => ({ type: 'build', roomType: type, x, y }),
+  buildHallLine: (cells) => ({ type: 'buildHallLine', cells }),
+  sell: (x, y) => ({ type: 'sell', x, y }),
+  hire: (role, grade) => ({ type: 'hire', role, grade }),
+  fire: (staffId) => ({ type: 'fire', staffId }),
+  setTuition: (step) => ({ type: 'setTuition', step }),
+  resolveEvent: (choiceId) => ({ type: 'resolveEvent', choiceId }),
+  dismissReport: () => ({ type: 'dismissReport' }),
+  tierUp: () => ({ type: 'tierUp' }),
+  earlyUnlock: (roomType) => ({ type: 'earlyUnlock', roomType }),
+  buyCosmetic: (cosmeticId) => ({ type: 'buyCosmetic', cosmeticId }),
+  equipCosmetic: (cosmeticId) => ({ type: 'equipCosmetic', cosmeticId }),
+  claimDailyLogin: (dayKey) => ({ type: 'claimDailyLogin', dayKey }),
+  applyReceipt: (receipt) => ({ type: 'applyReceipt', receipt }),
+  setAgeGate: (value) => ({ type: 'setAgeGate', value }),
+  resetSchool: (seed) => ({ type: 'resetSchool', seed }),
+};

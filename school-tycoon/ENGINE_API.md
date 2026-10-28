@@ -115,3 +115,37 @@ via credit keys `ach:<id>`. Level-ups credit `lvl:<n>`.
 
 `{ term, year, income, salaries, upkeep, net, studentsStart, studentsEnd, happiness, learning, stars, grade: 'A'..'F' }`
 (grade derived from learning: A≥85,B≥70,C≥55,D≥40,F).
+
+## Engine implementation notes (additive; nothing above changed)
+
+- `selectDerived(root)` is cached per `grid`/`rooms` identity for connectivity, `hallDist` and
+  distances. `roomStats.late/hR/hC` depend on the student count (restroom load, cafeteria
+  capacity), so the returned object is also re-created when `game.students` changes (only at
+  daily settlement). Ticks that cross no day boundary return the identical object. Extra
+  fields: `counts` (connected rooms by type), `restroomLoad`, `cafeteriaOver`. `connected` is
+  `true` for the office and for decor, which needs no hallway.
+- Extra selectors: `selectStaffing(root)` → `{ assignment:{roomId:staffId}, active, capacity,
+  janitors, nurses, salaries, teachers }`, `selectCanHire(root, role, grade)` → `{ ok, reason:
+  null|'tier'|'level'|'role'|'limit', salary, skill }`, `selectTuitionPerStudent(root)`.
+- `selectRoomAvailability` also returns `affordable` (ledger Apples ≥ `earlyCost`).
+  `canEarlyUnlock` means the rules allow it (in tier, level-gated, weekly cap left), whether or
+  not the player has enough Apples.
+- `selectXpProgress` at max level returns `isMax: true` and `xpForNext > xpForThis`, so a
+  progress bar never divides by zero.
+- Extra exports: `credit(ledger, key, amount)`, `xpForLevel(n)`, `ROOM_ORDER` (build menu
+  order), `STAFF_ROLES`, `TEACHER_GRADES`, `COSMETIC_SLOTS`, `DEFAULT_EQUIPPED`, `MAX_LEVEL`,
+  `MAX_TIER`, `DAYS_PER_YEAR`, `GAME_VERSION`, `LEDGER_VERSION`.
+- Config shapes: `TIERS` is keyed by tier number (`TIERS[game.tier]`), each `{ tier, id, name,
+  size, tuitionBase, requirements }`. `COSMETICS`, `PRODUCTS` and `ACHIEVEMENTS` are keyed by
+  id. Every `STAFF[role]` has `grades` (teacher: rookie/veteran/expert; janitor/nurse:
+  `standard`, also mirrored on the role). `PRODUCTS[*].type` is `'consumable' |
+  'nonconsumable'`.
+- Staff members also carry `grade`. The game also stores `termStats`, the running totals for
+  the current term's report.
+- Events: `phase` is `'announce'` (inspection, choices deepclean/cram), `'result'`
+  (inspection grade; a single `ok` choice; carries `grade` and `score`) or `'outbreak'` (flu,
+  choices close/open). Events also carry `title` and `text`. Effects keys: `closedUntil`,
+  `fluSickUntil`, `deepCleanUntil` (day numbers, exclusive).
+- `deserialize({ game: null, ledger })` starts a fresh school and keeps the ledger. It throws on
+  malformed JSON or a newer version, so the UI can fall back to `st:game.bak`.
+- `resetSchool()` with no seed uses `game.seed + 1`.
