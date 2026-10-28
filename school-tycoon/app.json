@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "School Tycoon",
+    "slug": "school-tycoon",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.yourcompany.schooltycoon" },
+    "android": { "package": "com.yourcompany.schooltycoon" }
+  }
+}
