@@ -43,7 +43,7 @@ export const EVENTS = {
   },
   broken_plumbing: {
     id: 'broken_plumbing', name: 'Broken Plumbing', emoji: '🔧', chance: 0.01, cooldownDays: 30, minDay: 10,
-    cond: stat('students', '>=', 20),
+    cond: { all: [{ hasRoom: 'restroom' }, stat('students', '>=', 20)] },
     text: 'A pipe burst in a restroom!',
     choices: [
       { id: 'repair', label: 'Emergency repair ($400)', effects: [{ cash: -400 }] },

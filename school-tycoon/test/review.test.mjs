@@ -82,3 +82,16 @@ test('a saved pack event whose choice id no longer exists cannot freeze the cloc
   assert.notEqual(closed, saved);
   assert.equal(closed.game.event, null);
 });
+
+test('broken plumbing needs a restroom to break', async () => {
+  const { evalCond } = await import('../src/engine/cond.js');
+  const r = starterSchool();
+  const cond = E.EVENTS.broken_plumbing.cond;
+  const withStudents = { ...r.game, students: 50 };
+  assert.equal(evalCond(withStudents, cond), true);
+  const restroomIds = Object.keys(r.game.rooms).filter((id) => r.game.rooms[id].type === 'restroom');
+  assert.ok(restroomIds.length > 0);
+  const rooms = { ...r.game.rooms };
+  for (const id of restroomIds) delete rooms[id];
+  assert.equal(evalCond({ ...withStudents, rooms }, cond), false);
+});
