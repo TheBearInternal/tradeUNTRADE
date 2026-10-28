@@ -24,7 +24,7 @@ test('deserialize with no game starts a new school but keeps the ledger', () => 
   assert.deepEqual(fresh, E.createInitialState());
 });
 
-test('v0 fixture migrates to v1', () => {
+test('v0 fixture migrates to the current version', () => {
   const base = E.createInitialState(321).game;
   const v0 = {
     seed: 321, rng: 999, tick: 50, tier: 1, size: 16, grid: base.grid, rooms: base.rooms, nextId: 2,
@@ -34,7 +34,7 @@ test('v0 fixture migrates to v1', () => {
   };
   const back = E.deserialize({ game: JSON.stringify(v0), ledger: JSON.stringify({ apples: 40, credited: { 'tx:1': true } }) });
   const g = back.game;
-  assert.equal(g.version, 1);
+  assert.equal(g.version, E.GAME_VERSION);
   assert.equal(g.cash, 777);
   assert.equal(g.tuitionStep, 1);
   assert.equal('money' in g, false);
@@ -43,7 +43,7 @@ test('v0 fixture migrates to v1', () => {
   assert.deepEqual(g.effects, {});
   assert.deepEqual(g.earlyUnlockLog, []);
   assert.equal(g.event, null);
-  assert.equal(back.ledger.version, 1);
+  assert.equal(back.ledger.version, E.LEDGER_VERSION);
   assert.equal(back.ledger.apples, 40);
   assert.equal(back.ledger.equipped.wall, 'wall_default');
   // the migrated game plays
@@ -56,10 +56,10 @@ test('newer save versions are rejected', () => {
   const r = E.createInitialState();
   const s = E.serialize(r);
   const g = JSON.parse(s.game);
-  g.version = 2;
+  g.version = E.GAME_VERSION + 1;
   assert.throws(() => E.deserialize({ game: JSON.stringify(g), ledger: s.ledger }), /newer/);
   const l = JSON.parse(s.ledger);
-  l.version = 9;
+  l.version = E.LEDGER_VERSION + 1;
   assert.throws(() => E.deserialize({ game: s.game, ledger: JSON.stringify(l) }), /newer/);
   assert.throws(() => E.deserialize({ game: '{not json', ledger: s.ledger }));
 });

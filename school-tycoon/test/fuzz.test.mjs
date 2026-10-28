@@ -17,11 +17,31 @@ function prng(seed) {
 const TYPES = Object.keys(E.ROOMS);
 const COS = Object.keys(E.COSMETICS);
 const PRODS = Object.keys(E.PRODUCTS);
+const ITEM_TYPES = Object.keys(E.ITEMS);
+const SCEN = [undefined, undefined, E.SANDBOX_ID, ...E.SCENARIO_ORDER];
+
+function itemAction(rand, root) {
+  const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+  const ids = Object.keys(root.game.interiors || {});
+  const roomId = ids.length && rand() < 0.95 ? pick(ids) : 'r999';
+  const items = (root.game.interiors[roomId] && root.game.interiors[roomId].items) || [];
+  const type = root.game.rooms[roomId] && rand() < 0.8
+    ? pick(ITEM_TYPES.filter((t) => E.ITEMS[t].rooms.indexOf(root.game.rooms[roomId].type) >= 0).concat(['globe']))
+    : pick(ITEM_TYPES);
+  const c = () => Math.floor(rand() * 20) - 2;
+  const k = rand();
+  if (k < 0.5) return A.placeItem(roomId, type, c(), c(), pick([0, 0, 1, 2]));
+  if (k < 0.7) return A.moveItem(roomId, items.length ? pick(items).id : 'i1', c(), c(), pick([0, 1, undefined]));
+  if (k < 0.85) return A.removeItem(roomId, items.length ? pick(items).id : 'i99');
+  if (k < 0.93) return A.autoArrange(roomId);
+  return A.earlyUnlockItem(pick(ITEM_TYPES));
+}
 
 function randomAction(rand, root) {
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const size = root.game.size;
   const xy = () => Math.floor(rand() * (size + 2)) - 1;
+  if (rand() < 0.22) return itemAction(rand, root);
   const k = rand();
   if (k < 0.25) return A.tick(pick([1, 1, 5, 24, 24, 48, 96]));
   if (k < 0.45) return A.build(pick(TYPES), xy(), xy());
@@ -48,7 +68,7 @@ function randomAction(rand, root) {
   if (k < 0.93) return A.claimDailyLogin(`2026-02-${String(1 + Math.floor(rand() * 28)).padStart(2, '0')}`);
   if (k < 0.96) return A.applyReceipt({ txId: `t${Math.floor(rand() * 20)}`, productId: pick(PRODS) });
   if (k < 0.97) return A.setAgeGate(pick(['adult', 'under13', 'x']));
-  if (k < 0.975) return A.resetSchool(Math.floor(rand() * 100));
+  if (k < 0.975) return A.resetSchool(Math.floor(rand() * 100), pick(SCEN));
   return pick([{ type: 'garbage' }, { type: 'build' }, { type: 'tick', n: NaN }, { type: 'sell', x: 'a' }, null]);
 }
 
@@ -73,9 +93,39 @@ function checkInvariants(root, where) {
   const rating = E.selectRating(root);
   assert.ok(Number.isFinite(rating.score) && rating.stars >= 0 && rating.stars <= 5);
   assert.ok(!JSON.stringify(g).includes('NaN') && !JSON.stringify(g).includes('null,null,"x"'));
+  if (g.mode === 'sandbox') assert.equal(g.cash, E.BALANCE.sandboxCash);
+  // interiors consistent with rooms and placement rules
+  for (const id in g.rooms) {
+    if (E.hasInterior(g.rooms[id].type)) assert.ok(g.interiors[id], `${where}: interior for ${id}`);
+  }
+  for (const id in g.interiors) {
+    const room = g.rooms[id];
+    assert.ok(room && E.hasInterior(room.type), `${where}: stray interior ${id}`);
+    const { cols, rows, door } = E.interiorDims(room.type);
+    const items = g.interiors[id].items;
+    assert.ok(items.length <= E.BALANCE.maxItemsPerRoom, `${where}: too many items`);
+    assert.equal(new Set(items.map((i) => i.id)).size, items.length, `${where}: duplicate item ids`);
+    const occ = new Array(cols * rows).fill(null);
+    for (const it of items) {
+      const def = E.ITEMS[it.itemType];
+      assert.ok(def && def.rooms.indexOf(room.type) >= 0, `${where}: item ${it.itemType} in ${room.type}`);
+      const { w, h } = E.itemSize(def, it.rot);
+      assert.ok(it.cx >= 0 && it.cy >= 0 && it.cx + w <= cols && it.cy + h <= rows, `${where}: item out of bounds`);
+      if (def.wall) assert.ok(it.cx === 0 || it.cy === 0, `${where}: wall item off the wall`);
+      for (let y = it.cy; y < it.cy + h; y++) {
+        for (let x = it.cx; x < it.cx + w; x++) {
+          assert.equal(occ[y * cols + x], null, `${where}: overlap in ${id}`);
+          occ[y * cols + x] = it.id;
+        }
+      }
+    }
+    assert.equal(occ[door.cy * cols + door.cx], null, `${where}: door blocked in ${id}`);
+    const q = E.selectRoomQuality(root, id);
+    assert.ok(Number.isFinite(q.score) && q.score >= 0 && q.score <= 100);
+  }
 }
 
-test('fuzz: 2000 random actions keep the state consistent', () => {
+test('fuzz: 2000 random actions (incl. items, scenarios, sandbox) keep the state consistent', () => {
   globalThis.__SCHOOL_TYCOON_DEBUG__ = true; // surface exceptions instead of swallowing them
   try {
     for (const seed of [1, 2]) {

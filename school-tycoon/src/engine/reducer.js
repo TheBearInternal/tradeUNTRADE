@@ -1,12 +1,17 @@
 // reduce(root, action) -> root. Pure; invalid actions return the same root object.
-import { ROOMS, STAFF, STAFF_NAMES, TIERS, BALANCE, COSMETICS, MAX_TIER } from './config/index.js';
+import {
+  ROOMS, STAFF, STAFF_NAMES, TIERS, BALANCE, COSMETICS, MAX_TIER, ITEMS, SCENARIOS, SANDBOX_ID, hasInterior,
+} from './config/index.js';
 import { stamp, resizeGrid } from './grid.js';
 import { advanceTicks } from './sim.js';
 import { applyChoice } from './events.js';
 import { checkAchievements } from './progress.js';
 import { debit, applyReceipt, claimLogin, isOwned } from './ledger.js';
 import { createInitialGame } from './state.js';
-import { canBuild, roomAvailability, earlyUnlocksLeft, tierProgress, selectCanHire } from './selectors.js';
+import {
+  canBuild, roomAvailability, earlyUnlocksLeft, tierProgress, selectCanHire, itemAvailability, canPlaceItem,
+} from './selectors.js';
+import { starterInterior, nextItemId } from './interior.js';
 import { pushLog, isInt } from './util.js';
 
 const B = BALANCE;
@@ -42,6 +47,7 @@ const H = {
       nextId: game.nextId + 1,
       cash: game.cash - def.cost,
     };
+    if (hasInterior(type)) g.interiors = { ...game.interiors, [id]: starterInterior(type) };
     return { game: g, ledger };
   },
 
@@ -80,7 +86,20 @@ const H = {
     stamp(grid, size, room.x, room.y, room.w, room.h, null);
     const rooms = { ...game.rooms };
     delete rooms[v];
-    return { game: { ...game, grid, rooms, cash: game.cash + Math.round(room.cost * B.sellRefund) }, ledger };
+    let refund = Math.round(room.cost * B.sellRefund);
+    let interiors = game.interiors;
+    if (interiors && interiors[v]) {
+      refund += itemsRefund(interiors[v].items);
+      interiors = { ...interiors };
+      delete interiors[v];
+    }
+    let effects = game.effects;
+    if (effects && effects.offline && effects.offline[v]) {
+      const offline = { ...effects.offline };
+      delete offline[v];
+      effects = { ...effects, offline };
+    }
+    return { game: { ...game, grid, rooms, interiors, effects, cash: game.cash + refund }, ledger };
   },
 
   hire(game, ledger, a) {
@@ -158,7 +177,7 @@ const H = {
       return { game, ledger: { ...L, owned: { ...L.owned, [c.id]: true } } };
     }
     if (c.currency === 'coins') {
-      if (game.cash < c.price) return null;
+      if (game.mode === 'sandbox' || game.cash < c.price) return null; // sandbox coins are not real
       return { game: { ...game, cash: game.cash - c.price }, ledger: { ...ledger, owned: { ...ledger.owned, [c.id]: true } } };
     }
     return null;
@@ -188,9 +207,98 @@ const H = {
   resetSchool(game, ledger, a) {
     const seed = a.seed === undefined || a.seed === null ? game.seed + 1 : a.seed;
     if (!Number.isFinite(Number(seed))) return null;
-    return { game: createInitialGame(seed), ledger };
+    const sid = a.scenarioId === undefined ? null : a.scenarioId;
+    if (sid !== null && sid !== SANDBOX_ID && !SCENARIOS[sid]) return null;
+    const schools = (ledger.schools || 1) + 1;
+    return { game: createInitialGame(seed, sid, schools), ledger: { ...ledger, schools } };
+  },
+
+  placeItem(game, ledger, a) {
+    const rot = a.rot === undefined ? 0 : a.rot;
+    if (!canPlaceItem(game, a.roomId, a.itemType, a.cx, a.cy, rot, null).ok) return null;
+    const interior = game.interiors[a.roomId] || { items: [] };
+    const item = { id: nextItemId(interior), itemType: a.itemType, cx: a.cx, cy: a.cy, rot };
+    return {
+      game: {
+        ...game,
+        cash: game.cash - ITEMS[a.itemType].cost,
+        interiors: { ...game.interiors, [a.roomId]: { ...interior, items: interior.items.concat([item]) } },
+      },
+      ledger,
+    };
+  },
+
+  moveItem(game, ledger, a) {
+    const interior = game.interiors && game.interiors[a.roomId];
+    if (!interior) return null;
+    const k = interior.items.findIndex((it) => it.id === a.itemId);
+    if (k < 0) return null;
+    const cur = interior.items[k];
+    const rot = a.rot === undefined ? cur.rot : a.rot;
+    if (cur.cx === a.cx && cur.cy === a.cy && cur.rot === rot) return null;
+    if (!canPlaceItem(game, a.roomId, cur.itemType, a.cx, a.cy, rot, cur.id).ok) return null;
+    const items = interior.items.slice();
+    items[k] = { ...cur, cx: a.cx, cy: a.cy, rot };
+    return { game: { ...game, interiors: { ...game.interiors, [a.roomId]: { ...interior, items } } }, ledger };
+  },
+
+  removeItem(game, ledger, a) {
+    const interior = game.interiors && game.interiors[a.roomId];
+    if (!interior) return null;
+    const cur = interior.items.find((it) => it.id === a.itemId);
+    if (!cur) return null;
+    const items = interior.items.filter((it) => it.id !== a.itemId);
+    return {
+      game: {
+        ...game,
+        cash: game.cash + itemsRefund([cur]),
+        interiors: { ...game.interiors, [a.roomId]: { ...interior, items } },
+      },
+      ledger,
+    };
+  },
+
+  autoArrange(game, ledger, a) {
+    const room = game.rooms[a.roomId];
+    if (!room || !hasInterior(room.type)) return null;
+    const cur = (game.interiors && game.interiors[a.roomId]) || { items: [] };
+    const fresh = starterInterior(room.type);
+    if (JSON.stringify(cur.items) === JSON.stringify(fresh.items)) return null;
+    return {
+      game: { ...game, cash: game.cash + itemsRefund(cur.items), interiors: { ...game.interiors, [a.roomId]: fresh } },
+      ledger,
+    };
+  },
+
+  earlyUnlockItem(game, ledger, a) {
+    const av = itemAvailability(game, ledger, a.itemType);
+    if (av.available || av.reason !== 'level' || !av.canEarlyUnlock) return null;
+    const L = debit(ledger, av.earlyCost);
+    if (!L) return null;
+    const g = {
+      ...game,
+      unlockedItems: { ...game.unlockedItems, [a.itemType]: true },
+      earlyUnlockLog: [...game.earlyUnlockLog.filter((d) => d > game.day - B.earlyUnlockWindowDays), game.day],
+    };
+    log(g, `Unlocked ${ITEMS[a.itemType].name} early (-${av.earlyCost} 🍎).`, 'info');
+    return { game: g, ledger: L };
   },
 };
+
+function itemsRefund(items) {
+  let r = 0;
+  for (const it of items) {
+    const def = ITEMS[it.itemType];
+    if (def) r += Math.round(def.cost * B.itemRefund);
+  }
+  return r;
+}
+
+// Sandbox: cash is pinned to a huge constant after every action.
+function pinSandbox(game) {
+  if (game.mode !== 'sandbox' || game.cash === B.sandboxCash) return game;
+  return { ...game, cash: B.sandboxCash };
+}
 
 export function reduce(root, action) {
   if (!root || !root.game || !root.ledger || !action || typeof action.type !== 'string') return root;
@@ -200,7 +308,7 @@ export function reduce(root, action) {
     const res = handler(root.game, root.ledger, action);
     if (!res || !res.game || !res.ledger) return root;
     if (res.game === root.game && res.ledger === root.ledger) return root;
-    const out = checkAchievements(res.game, res.ledger);
+    const out = checkAchievements(pinSandbox(res.game), res.ledger);
     return { game: out.game, ledger: out.ledger };
   } catch (e) {
     if (typeof globalThis !== 'undefined' && globalThis.__SCHOOL_TYCOON_DEBUG__) throw e;

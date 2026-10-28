@@ -1,8 +1,10 @@
 // Versioned persistence. serialize -> { game: string, ledger: string } (AsyncStorage keys
 // st:game / st:ledger). deserialize runs migrations and throws on a newer version.
-import { BALANCE, TIERS, DEFAULT_EQUIPPED } from './config/index.js';
-import { GAME_VERSION, createInitialGame } from './state.js';
+import { BALANCE, TIERS, DEFAULT_EQUIPPED, SCENARIOS } from './config/index.js';
+import { GAME_VERSION, createInitialGame, DEFAULT_MODIFIERS } from './state.js';
 import { LEDGER_VERSION, createInitialLedger } from './ledger.js';
+import { starterInteriors } from './interior.js';
+import { initialWeekly } from './weekly.js';
 import { idNum } from './util.js';
 
 // v0 (pre-release prototype) saves: no `version`, money in `money`, tuition step in `tuition`,
@@ -17,11 +19,29 @@ export const GAME_MIGRATIONS = {
     out.version = 1;
     return out;
   },
+  // v1 -> v2: every room gets its free starter layout (reproduces v1 numbers exactly), plus
+  // the replay-system fields. Weekly goals are drawn from the save's own RNG (deterministic).
+  1: (g) => {
+    const out = {
+      ...g,
+      interiors: starterInteriors(g.rooms || {}),
+      unlockedItems: {},
+      eventCooldowns: {},
+      mode: 'normal',
+      scenario: null,
+      modifiers: DEFAULT_MODIFIERS,
+      schoolNo: 1,
+      version: 2,
+    };
+    out.weekly = null;
+    return out;
+  },
 };
 
 // v0 ledgers: { apples, credited } only.
 export const LEDGER_MIGRATIONS = {
   0: (l) => ({ ...l, version: 1 }),
+  1: (l) => ({ ...l, medals: {}, schools: 1, version: 2 }),
 };
 
 function migrate(obj, current, migrations, what) {
@@ -45,7 +65,7 @@ function normalizeGame(raw) {
   const d = createInitialGame(raw.seed);
   const g = { ...d, ...raw };
   g.tier = TIERS[g.tier] ? g.tier : 1;
-  g.size = TIERS[g.tier].size;
+  g.size = Number.isInteger(g.size) && g.size >= 8 && g.size <= 64 ? g.size : TIERS[g.tier].size;
   if (!Array.isArray(g.grid) || g.grid.length !== g.size * g.size) throw new Error('Corrupt save: grid size mismatch');
   g.grid = g.grid.map((v) => (v === undefined ? null : v));
   g.rooms = obj(g.rooms, d.rooms);
@@ -76,6 +96,16 @@ function normalizeGame(raw) {
   g.termStats = { ...d.termStats, ...obj(g.termStats, {}) };
   if (g.event !== null && !(g.event && Array.isArray(g.event.choices) && g.event.choices.length)) g.event = null;
   g.inspectionDueDay = int(g.inspectionDueDay, d.inspectionDueDay);
+  g.interiors = obj(raw.interiors, null) || starterInteriors(g.rooms);
+  for (const id in g.interiors) if (!g.rooms[id]) delete g.interiors[id];
+  g.unlockedItems = obj(g.unlockedItems, {});
+  g.eventCooldowns = obj(g.eventCooldowns, {});
+  g.mode = g.mode === 'sandbox' || g.mode === 'scenario' ? g.mode : 'normal';
+  g.scenario = g.scenario && SCENARIOS[g.scenario.id] && Array.isArray(g.scenario.goalsMet) ? g.scenario : null;
+  if (g.mode === 'scenario' && !g.scenario) g.mode = 'normal';
+  g.modifiers = { ...DEFAULT_MODIFIERS, ...obj(g.modifiers, {}) };
+  g.schoolNo = Math.max(1, int(g.schoolNo, 1));
+  if (!g.weekly || !Array.isArray(g.weekly.goals)) g.weekly = initialWeekly(g);
   while (g.inspectionDueDay <= g.day) g.inspectionDueDay += BALANCE.inspectionInterval;
   g.version = GAME_VERSION;
   return g;
@@ -88,6 +118,8 @@ function normalizeLedger(raw) {
   l.credited = obj(l.credited, {});
   l.owned = obj(l.owned, {});
   l.equipped = { ...DEFAULT_EQUIPPED, ...obj(l.equipped, {}) };
+  l.medals = obj(l.medals, {});
+  l.schools = Math.max(1, int(l.schools, 1));
   l.login = { ...d.login, ...obj(l.login, {}) };
   if (l.ageGate !== 'under13' && l.ageGate !== 'adult') l.ageGate = null;
   l.version = LEDGER_VERSION;

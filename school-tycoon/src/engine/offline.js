@@ -1,11 +1,16 @@
-// Offline progress on resume: 1 real second = 1 tick (1x speed), capped at 8 hours.
+// Offline progress on resume: BALANCE.offlineTicksPerMinute ticks per whole real minute away,
+// capped at BALANCE.offlineMaxTicks (72 ticks = 3 game days). Negative / clock-back -> nothing.
 import { BALANCE } from './config/index.js';
 import { reduce } from './reducer.js';
 import { actions } from './actions.js';
 
+export function offlineTicksFor(elapsedMs) {
+  const ms = Math.max(0, Number(elapsedMs) || 0);
+  return Math.min(Math.floor(ms / 60000) * BALANCE.offlineTicksPerMinute, BALANCE.offlineMaxTicks);
+}
+
 export function simulateOffline(root, elapsedMs) {
-  const ms = Math.min(Math.max(0, Number(elapsedMs) || 0), BALANCE.offlineCapMs);
-  let ticks = Math.floor(ms / BALANCE.msPerTickOffline);
+  let ticks = offlineTicksFor(elapsedMs);
   const start = root;
   let r = root;
   while (ticks > 0) {

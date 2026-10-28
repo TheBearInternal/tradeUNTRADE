@@ -22,9 +22,15 @@ export const STAFF = {
     skill: 0, salary: 50, level: 1, tier: 2,
     grades: { standard: { id: 'standard', name: 'Nurse', skill: 0, salary: 50, level: 1, tier: 2 } },
   },
+  counselor: {
+    id: 'counselor', role: 'counselor', name: 'Counselor', emoji: '🧑‍💼',
+    desc: "Works in the Counselor's Office: half as many students leave.",
+    skill: 0, salary: 60, level: 1, tier: 2,
+    grades: { standard: { id: 'standard', name: 'Counselor', skill: 0, salary: 60, level: 1, tier: 2 } },
+  },
 };
 
-export const STAFF_ROLES = ['teacher', 'janitor', 'nurse'];
+export const STAFF_ROLES = ['teacher', 'janitor', 'nurse', 'counselor'];
 export const TEACHER_GRADES = ['rookie', 'veteran', 'expert'];
 
 export const STAFF_NAMES = [

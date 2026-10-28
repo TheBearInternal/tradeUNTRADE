@@ -1,0 +1,58 @@
+{
+ "save": {
+  "game": "{\"version\":1,\"seed\":4242,\"rng\":127088851,\"tick\":293,\"day\":12,\"tier\":1,\"size\":16,\"grid\":[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"r2\",\"r2\",\"r2\",null,null,null,\"r3\",\"r3\",\"r3\",null,null,null,null,null,null,null,\"r2\",\"r2\",\"r2\",null,\"r4\",\"r4\",\"r3\",\"r3\",\"r3\",null,null,null,null,null,null,null,\"r2\",\"r2\",\"r2\",null,\"r4\",\"r4\",\"r3\",\"r3\",\"r3\",null,null,null,null,null,null,null,\"hall\",\"hall\",\"hall\",\"hall\",\"hall\",\"hall\",\"hall\",\"hall\",\"hall\",null,null,null,null,null,null,null,null,null,null,null,\"hall\",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"hall\",null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"hall\",null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"r1\",\"r1\",\"r1\",null,null,null,null,null,null,null,null,null,null,null,null,null,\"r1\",\"r1\",\"r1\",null,null,null,null,null,null,null],\"rooms\":{\"r1\":{\"id\":\"r1\",\"type\":\"office\",\"x\":6,\"y\":14,\"w\":3,\"h\":2,\"cost\":0},\"r2\":{\"id\":\"r2\",\"type\":\"classroom\",\"x\":3,\"y\":7,\"w\":3,\"h\":3,\"cost\":500},\"r3\":{\"id\":\"r3\",\"type\":\"classroom\",\"x\":9,\"y\":7,\"w\":3,\"h\":3,\"cost\":500},\"r4\":{\"id\":\"r4\",\"type\":\"restroom\",\"x\":7,\"y\":8,\"w\":2,\"h\":2,\"cost\":300}},\"nextId\":8,\"staff\":{\"s5\":{\"id\":\"s5\",\"role\":\"teacher\",\"grade\":\"rookie\",\"skill\":1,\"salary\":50,\"name\":\"Mr. Tanaka\"},\"s6\":{\"id\":\"s6\",\"role\":\"teacher\",\"grade\":\"rookie\",\"skill\":1,\"salary\":50,\"name\":\"Mrs. Adeyemi\"},\"s7\":{\"id\":\"s7\",\"role\":\"janitor\",\"grade\":\"standard\",\"skill\":0,\"salary\":30,\"name\":\"Mr. Chen\"}},\"students\":40,\"happiness\":39.236,\"learning\":18.597,\"cleanliness\":100,\"reputation\":0,\"cash\":4274,\"tuitionStep\":0,\"xp\":35,\"level\":1,\"stars\":1,\"unlocked\":{},\"earlyUnlockLog\":[],\"event\":null,\"effects\":{},\"lastInspectionGrade\":null,\"inspectionDueDay\":45,\"achievements\":{\"first_classroom\":true,\"first_hire\":true,\"students_25\":true,\"spotless\":true},\"lastReport\":null,\"log\":[{\"day\":0,\"text\":\"Welcome, Principal! Build classrooms and connect them to the Front Office with hallways.\",\"kind\":\"info\"},{\"day\":0,\"text\":\"Achievement: First Classroom (+10 🍎)\",\"kind\":\"good\"},{\"day\":0,\"text\":\"Hired Mr. Tanaka (Rookie Teacher, $50/day).\",\"kind\":\"info\"},{\"day\":0,\"text\":\"Achievement: First Hire (+10 🍎)\",\"kind\":\"good\"},{\"day\":0,\"text\":\"Hired Mrs. Adeyemi (Rookie Teacher, $50/day).\",\"kind\":\"info\"},{\"day\":0,\"text\":\"Hired Mr. Chen (Janitor, $30/day).\",\"kind\":\"info\"},{\"day\":5,\"text\":\"Achievement: 25 Students (+15 🍎)\",\"kind\":\"good\"},{\"day\":5,\"text\":\"Achievement: Spotless (+15 🍎)\",\"kind\":\"good\"}],\"stats\":{\"totalEarned\":3260,\"totalStudentsEver\":40},\"termStats\":{\"income\":3260,\"salaries\":1560,\"upkeep\":36,\"studentsStart\":0}}",
+  "ledger": "{\"version\":1,\"apples\":50,\"credited\":{\"ach:first_classroom\":true,\"ach:first_hire\":true,\"ach:students_25\":true,\"ach:spotless\":true},\"owned\":{},\"equipped\":{\"wall\":\"wall_default\",\"floor\":\"floor_default\",\"mascot\":\"mascot_none\",\"uniform\":\"uniform_navy\",\"skin\":\"skin_default\"},\"login\":{\"lastDayKey\":null,\"streakIndex\":0},\"ageGate\":null}"
+ },
+ "expected": {
+  "pnl": {
+   "tuition": 400,
+   "salaries": 130,
+   "upkeep": 3,
+   "net": 267
+  },
+  "capacity": 40,
+  "rating": {
+   "score": 28.1,
+   "stars": 1,
+   "coverage": 25
+  },
+  "roomStats": {
+   "r2": {
+    "dR": 3,
+    "dC": 99,
+    "late": 0.6,
+    "hR": 10,
+    "hC": -25
+   },
+   "r3": {
+    "dR": 2,
+    "dC": 99,
+    "late": 0.6,
+    "hR": 10,
+    "hC": -25
+   },
+   "r4": {
+    "dR": 1,
+    "dC": 99,
+    "late": 0.6,
+    "hR": 10,
+    "hC": -25
+   }
+  },
+  "connected": {
+   "r1": true,
+   "r2": true,
+   "r3": true,
+   "r4": true
+  },
+  "next": {
+   "cash": 4541,
+   "students": 40,
+   "happiness": 38.812,
+   "learning": 19.269,
+   "cleanliness": 100,
+   "reputation": 0,
+   "stars": 1
+  }
+ }
+}

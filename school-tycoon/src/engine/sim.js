@@ -1,12 +1,15 @@
 // Daily settlement (DESIGN §3). Called once per day rollover with g.day already advanced.
 import { BALANCE, DAYS_PER_TERM, TERMS_PER_YEAR, TICKS_PER_DAY } from './config/index.js';
-import { computeStaffing } from './derived.js';
+import { computeStaffing, computeFacilities, computeBase } from './derived.js';
 import {
   computePnL, isClosedOn, isSickOn, schoolMods, happinessTarget, learningTarget,
-  computeRating, roomReputation, applicantsPerDay,
+  computeRating, roomReputation, applicantsPerDay, hasCounselor,
 } from './model.js';
+import { ROOMS } from './config/index.js';
 import { addXp } from './progress.js';
-import { dailyEvents } from './events.js';
+import { dailyEvents, updateChallenge } from './events.js';
+import { updateScenario } from './scenario.js';
+import { updateWeekly } from './weekly.js';
 import { clamp, pushLog } from './util.js';
 
 const B = BALANCE;
@@ -36,7 +39,8 @@ export function settleDay(game, ledger) {
   const pnl = computePnL(g, dEnded);
   const cashBefore = g.cash;
   g.cash = Math.round(g.cash + pnl.net);
-  g.stats = { ...g.stats, totalEarned: g.stats.totalEarned + pnl.tuition };
+  g.stats = { ...g.stats, totalEarned: g.stats.totalEarned + pnl.tuition + (pnl.vending || 0) };
+  const xpBefore = g.xp;
   const ts = g.termStats;
   g.termStats = {
     income: ts.income + pnl.tuition,
@@ -47,9 +51,10 @@ export function settleDay(game, ledger) {
   if (cashBefore >= 0 && g.cash < 0) pushLog(g, 'Cash is negative! Cut costs or raise income.', 'bad', B.logSize);
 
   // cleanliness
+  const fac = computeFacilities(g);
   let C = g.cleanliness;
-  if (!closed) C -= N * B.dirtPerStudent;
-  C += B.cleanPerJanitor * st.janitors;
+  if (!closed) C -= N * B.dirtPerStudent * fac.hygieneMult;
+  C += B.cleanPerJanitor * st.janitors + fac.furnitureClean - ROOMS.vending.dirtPerDay * (computeBase(g).counts.vending || 0);
   g.cleanliness = round3(clamp(C, 0, 100));
 
   // happiness
@@ -71,7 +76,9 @@ export function settleDay(game, ledger) {
   // enrollment
   let n = N;
   if (g.happiness < B.leaverHappinessThreshold && n > 0) {
-    n -= Math.min(n, Math.ceil((n * (B.leaverHappinessThreshold - g.happiness)) / B.leaverDiv));
+    let leavers = Math.ceil((n * (B.leaverHappinessThreshold - g.happiness)) / B.leaverDiv);
+    if (hasCounselor(g)) leavers = Math.floor(leavers * ROOMS.counselor.leaverMult);
+    n -= Math.min(n, leavers);
   }
   if (n > cap) n = cap;
   const enroll = Math.min(applicantsPerDay(g), Math.max(0, cap - n));
@@ -99,7 +106,10 @@ export function settleDay(game, ledger) {
       learning: Math.round(g.learning),
       stars: g.stars,
       grade: reportGrade(g.learning),
+      // DESIGN_V2 §4: under-13 profiles get a gentle break suggestion every 3rd consecutive term.
+      suggestBreak: ledger.ageGate === 'under13' && (termIndex + 1) % 3 === 0,
     };
+    if (g.lastReport.suggestBreak) g.lastReport.breakMessage = 'Great term — good time for a break!';
     g.termStats = { income: 0, salaries: 0, upkeep: 0, studentsStart: g.students };
     L = addXp(g, L, B.xpPerTerm);
     pushLog(g, `Term ${g.lastReport.term} report card: grade ${g.lastReport.grade}, net $${g.lastReport.net}.`, 'info', B.logSize);
@@ -107,6 +117,21 @@ export function settleDay(game, ledger) {
 
   // events
   L = dailyEvents(g, L);
+  updateChallenge(g);
+  const off = g.effects && g.effects.offline;
+  if (off) {
+    const keep = {};
+    let changed = false;
+    for (const id in off) {
+      if (off[id] > g.day && g.rooms[id]) keep[id] = off[id];
+      else changed = true;
+    }
+    if (changed) g.effects = { ...g.effects, offline: keep };
+  }
+
+  // replay systems
+  L = updateScenario(g, L);
+  L = updateWeekly(g, L, { enrolled: enroll, income: pnl.tuition, xp: g.xp - xpBefore });
 
   return { game: g, ledger: L };
 }

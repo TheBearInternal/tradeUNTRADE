@@ -20,6 +20,7 @@ export function addXp(g, ledger, amount) {
   const lvl = levelForXp(g.xp);
   while (g.level < lvl) {
     g.level += 1;
+    if (g.mode === 'sandbox') continue; // no Apples from sandbox
     L = credit(L, `lvl:${g.level}`, BALANCE.applesPerLevel);
     pushLog(g, `Level up! You are now level ${g.level} (+${BALANCE.applesPerLevel} 🍎).`, 'good', BALANCE.logSize);
   }
@@ -51,6 +52,7 @@ export const ACHIEVEMENT_CHECKS = {
 
 // Returns the same objects when nothing new is achieved.
 export function checkAchievements(game, ledger) {
+  if (game.mode === 'sandbox') return { game, ledger };
   let g = null;
   let L = ledger;
   for (const id in ACHIEVEMENTS) {

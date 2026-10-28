@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { E, A, run, days, starterSchool } from './helpers.mjs';
+import { E, A, run, days, starterSchool, quiet } from './helpers.mjs';
 
 test('daily economy math', () => {
-  let r = starterSchool();
+  let r = quiet(starterSchool());
   assert.equal(r.game.cash, 4000 - 2 * 500 - 300 - 9 * 10);
   const p0 = E.selectDailyPnL(r);
   const halls = r.game.grid.filter((v) => v === 'hall').length;
-  assert.deepEqual(p0, { tuition: 0, salaries: 130, upkeep: 3 + Math.round(halls * 10 * 0.002), net: -133 });
+  assert.deepEqual(p0, { tuition: 0, salaries: 130, upkeep: 3 + Math.round(halls * 10 * 0.002), net: -133, vending: 0 });
   r = days(r, 3);
   const N = r.game.students;
   assert.equal(N, 18, 'applicants/day = 6 at rep 0');
@@ -52,8 +52,16 @@ test('term report card every 15 days', () => {
   assert.equal(rep.studentsStart, 0);
   assert.equal(rep.studentsEnd, r.game.students);
   assert.ok('ABCDF'.includes(rep.grade));
+  assert.equal(rep.suggestBreak, false);
   r = run(r, A.dismissReport());
   assert.equal(r.game.lastReport, null);
+  // under-13 profiles get a break suggestion after every 3rd term
+  let kid = run(starterSchool(), A.setAgeGate('under13'));
+  kid = days(kid, 30);
+  assert.equal(kid.game.lastReport.suggestBreak, false);
+  kid = days(kid, 15);
+  assert.equal(kid.game.lastReport.suggestBreak, true);
+  assert.equal(kid.game.lastReport.breakMessage, 'Great term — good time for a break!');
   assert.deepEqual(E.selectTimeLabel(r), { year: 1, term: 2, dayOfTerm: 1, hour: 0 });
 });
 

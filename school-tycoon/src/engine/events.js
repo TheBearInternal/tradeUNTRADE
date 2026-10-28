@@ -1,8 +1,10 @@
 // Inspection and flu events (DESIGN §5). All functions take a mutable game copy `g`
 // and return the (possibly new) ledger.
-import { BALANCE, ROOMS } from './config/index.js';
+import { BALANCE, ROOMS, EVENTS, EVENT_ORDER } from './config/index.js';
 import { computeBase } from './derived.js';
 import { computeCoverage, hasNurseCare } from './model.js';
+import { evalCond, applyEffects, applyWin } from './cond.js';
+import { roomAvailability } from './selectors.js';
 import { rngNext } from './rng.js';
 import { addXp } from './progress.js';
 import { clamp, pushLog } from './util.js';
@@ -42,6 +44,16 @@ export function applyChoice(g, ledger, choiceId) {
   if (!ev || !ev.choices.some((c) => c.id === choiceId)) return null;
   const day = g.day;
   let L = ledger;
+  const pack = EVENTS[ev.id];
+  if (pack) {
+    const choice = pack.choices.find((c) => c.id === choiceId);
+    let mult = 1;
+    for (const rm of pack.rewardMult || []) if (evalCond(g, rm.cond)) mult = Math.max(mult, rm.mult);
+    g.event = null;
+    L = applyEffects(g, L, choice.effects, { mult, params: ev.params });
+    pushLog(g, `${pack.name}: ${choice.label}`, 'info', B.logSize);
+    return L;
+  }
   if (ev.id === 'inspection' && ev.phase === 'announce') {
     if (choiceId === 'deepclean') {
       g.cleanliness = clamp(g.cleanliness + B.deepCleanBonus, 0, 100);
@@ -83,6 +95,7 @@ export function dailyEvents(g, ledger) {
     g.cash += rw.cash;
     if (rw.xp) L = addXp(g, L, rw.xp);
     g.lastInspectionGrade = grade;
+    if (grade === 'A') applyWin(g);
     while (g.inspectionDueDay <= g.day) g.inspectionDueDay += B.inspectionInterval;
     const parts = [];
     if (rw.rep) parts.push(`${rw.rep > 0 ? '+' : ''}${rw.rep} reputation`);
@@ -108,10 +121,11 @@ export function dailyEvents(g, ledger) {
   // 4. flu outbreak (seeded)
   const fx = g.effects || {};
   const fluActive = (fx.fluSickUntil || 0) > g.day || (fx.closedUntil || 0) > g.day;
+  const fluMult = (g.modifiers && g.modifiers.fluChanceMult) || 1;
   if (!g.event && !fluActive && g.students >= B.fluMinStudents) {
     const r = rngNext(g.rng);
     g.rng = r.state;
-    if (r.value < B.fluChance) {
+    if (r.value < B.fluChance * fluMult) {
       g.event = {
         id: 'flu', phase: 'outbreak', title: 'Flu outbreak!',
         text: 'A flu is spreading through the school. What do you do?',
@@ -120,5 +134,69 @@ export function dailyEvents(g, ledger) {
       log(g, 'Flu outbreak!', 'bad');
     }
   }
+  // 5. event pack (one roll over all eligible events)
+  if (!g.event) rollPack(g);
   return L;
+}
+
+function packParams(g, def) {
+  if (def.params !== 'challengeRoom') return {};
+  const counts = computeBase(g).counts;
+  const options = def.challengeRooms.filter((t) => !(counts[t] > 0) && roomAvailability(g, null, t).available
+    && !(g.modifiers && g.modifiers.bannedRooms && g.modifiers.bannedRooms.indexOf(t) >= 0));
+  if (!options.length) return null;
+  const r = rngNext(g.rng);
+  g.rng = r.state;
+  return { room: options[Math.floor(r.value * options.length)] };
+}
+
+function rollPack(g) {
+  const cool = g.eventCooldowns || {};
+  const eligible = EVENT_ORDER.filter((id) => {
+    const def = EVENTS[id];
+    if (g.day < def.minDay) return false;
+    if (cool[id] !== undefined && g.day - cool[id] < def.cooldownDays) return false;
+    if (id === 'donor_challenge' && g.effects && g.effects.challenge) return false;
+    return evalCond(g, def.cond);
+  });
+  if (!eligible.length) return;
+  const r = rngNext(g.rng);
+  g.rng = r.state;
+  let acc = 0;
+  for (const id of eligible) {
+    const def = EVENTS[id];
+    acc += def.chance;
+    if (r.value < acc) {
+      const params = packParams(g, def);
+      if (params === null) return;
+      const roomName = params.room ? ROOMS[params.room].name : '';
+      g.event = {
+        id, kind: 'pack', phase: 'decision', title: `${def.emoji} ${def.name}`,
+        text: def.text.replace('{room}', roomName), params,
+        choices: def.choices.map((c) => ({ id: c.id, label: c.label })), startedDay: g.day,
+      };
+      g.eventCooldowns = { ...cool, [id]: g.day };
+      log(g, `${def.emoji} ${def.name}!`, 'info');
+      return;
+    }
+  }
+}
+
+// Donor challenge progress; called daily.
+export function updateChallenge(g) {
+  const c = g.effects && g.effects.challenge;
+  if (!c) return;
+  if ((computeBase(g).counts[c.room] || 0) > 0) {
+    g.cash += c.reward;
+    const fx = { ...g.effects };
+    delete fx.challenge;
+    g.effects = fx;
+    log(g, `Donor challenge complete: +$${c.reward}!`, 'good');
+    applyWin(g);
+  } else if (g.day >= c.until) {
+    const fx = { ...g.effects };
+    delete fx.challenge;
+    g.effects = fx;
+    log(g, 'The donor challenge expired.', 'bad');
+  }
 }

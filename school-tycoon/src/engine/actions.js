@@ -16,5 +16,11 @@ export const actions = {
   claimDailyLogin: (dayKey) => ({ type: 'claimDailyLogin', dayKey }),
   applyReceipt: (receipt) => ({ type: 'applyReceipt', receipt }),
   setAgeGate: (value) => ({ type: 'setAgeGate', value }),
-  resetSchool: (seed) => ({ type: 'resetSchool', seed }),
+  resetSchool: (seed, scenarioId) => ({ type: 'resetSchool', seed, scenarioId }),
+  // v2
+  placeItem: (roomId, itemType, cx, cy, rot = 0) => ({ type: 'placeItem', roomId, itemType, cx, cy, rot }),
+  moveItem: (roomId, itemId, cx, cy, rot) => ({ type: 'moveItem', roomId, itemId, cx, cy, rot }),
+  removeItem: (roomId, itemId) => ({ type: 'removeItem', roomId, itemId }),
+  autoArrange: (roomId) => ({ type: 'autoArrange', roomId }),
+  earlyUnlockItem: (itemType) => ({ type: 'earlyUnlockItem', itemType }),
 };

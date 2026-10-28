@@ -16,6 +16,18 @@
 //     target -5 for the whole school while the flu lasts.
 //  6. Closed school days: no tuition, no learning change and no cleanliness decay; salaries
 //     and upkeep are still paid.
+//
+// v2 (DESIGN_V2) interpretations:
+//  7. Vending income: only one Vending Corner earns ($0.5/student/day, rounded), each one
+//     dirties by 1/day. Bus Stop / Trophy Case: only one counts. The Bus Stop also has to
+//     still touch the lot edge (after a tier-up shift it may not).
+//  8. Furniture comfort in rooms that are not seat rooms / restroom / cafeteria (library,
+//     staff room, gym, ...) adds 2*Cf/(Cf+15) school happiness per room, capped at +6 in total.
+//     Restroom/cafeteria comfort is averaged over working connected facilities and added to hR/hC.
+//  9. Counselor: leavers are halved (floor) when a Counselor's Office is connected and a
+//     Counselor is on staff.
+// 10. Offline progress (coordinator fix): 1 tick per real minute away, capped at 72 ticks
+//     (3 game days). v1 ran 1 tick per real second for up to 8h (1200 days).
 
 export const TICKS_PER_DAY = 24;
 export const DAYS_PER_TERM = 15;
@@ -42,8 +54,8 @@ export const BALANCE = {
 
   // time
   maxTickBatch: 96,
-  offlineCapMs: 8 * 60 * 60 * 1000,
-  msPerTickOffline: 1000,
+  offlineTicksPerMinute: 1,
+  offlineMaxTicks: 72,
   secondsPerDayAt1x: 24,
 
   // staff
@@ -151,6 +163,30 @@ export const BALANCE = {
   earlyUnlockWindowDays: 7,
   loginCycle: [5, 5, 10, 5, 5, 10, 25],
   applesPerUsd: 100 / 0.99,
+
+  // interiors (DESIGN_V2 §2)
+  cellsPerTile: 3,
+  maxItemsPerRoom: 40,
+  itemRefund: 0.5,
+  stallCapacity: 10,
+  seatFocusMax: 0.25, seatFocusHalf: 20, // learning x (1 + 0.25*F/(F+20))
+  seatComfortMax: 8, seatComfortHalf: 15, // happiness + 8*Cf/(Cf+15)
+  libraryBase: 0.1, libraryFocusMax: 0.1, libraryFocusHalf: 20, // 10% + 10%*F/(F+20)
+  facilityComfortMax: 4, facilityComfortHalf: 15,
+  otherComfortMax: 2, otherComfortHalf: 15, otherComfortCap: 6,
+  hygieneMax: 0.3, hygieneHalf: 10, // dirt x (1 - 0.3*Hy/(Hy+10))
+  furnitureRepCap: 3,
+
+  // v2 rooms
+  vendingMaxCount: 1,
+
+  // event pack / replay
+  winRep: 15,
+  weeklyGoalsPerWeek: 3,
+  weeklyGoalWeeksKept: 3,
+  weeklyGoalApples: 1, // arbiter: 5 paid out ~300 free Apples per play-hour, undercutting IAP pricing
+  daysPerWeek: 7,
+  sandboxCash: 999999999,
 
   // misc
   logSize: 20,

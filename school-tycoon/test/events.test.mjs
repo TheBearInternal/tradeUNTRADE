@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { E, A, run, days, starterSchool, withGame } from './helpers.mjs';
+import { E, A, run, days, starterSchool, withGame, quiet } from './helpers.mjs';
 
 function toAnnouncement(seed = 12345) {
   let r = starterSchool(seed);
@@ -49,7 +49,7 @@ test('inspection: deep clean, then grade at day 45', () => {
 });
 
 test('inspection grade A: +100 rep, +$2000, +100 XP, achievement + cosmetic', () => {
-  let r = withGame(starterSchool(), { level: 3 });
+  let r = withGame(quiet(starterSchool()), { level: 3 });
   r = run(r, A.build('cafeteria', 2, 11), A.build('playground', 12, 6), A.build('hall', 12, 10));
   r = withGame(r, { tick: 44 * 24, day: 44, learning: 100, cleanliness: 100, students: 40, reputation: 10 });
   const pnl = E.selectDailyPnL(r);
@@ -69,7 +69,8 @@ test('unresolved events auto-pick the first option after 2 days', () => {
   r = days(r, 1);
   assert.ok(r.game.event, 'still pending after 1 day');
   r = days(r, 1);
-  assert.equal(r.game.event, null);
+  // the announcement was auto-resolved with its first option (another event may open right after)
+  assert.ok(!r.game.event || r.game.event.id !== 'inspection');
   assert.equal(r.game.effects.deepCleanUntil, 42 + 5);
 });
 
@@ -80,7 +81,7 @@ function withFlu(fn) {
 }
 
 function toFlu() {
-  let r = starterSchool();
+  let r = quiet(starterSchool());
   while (!r.game.event) r = E.reduce(r, A.tick(24));
   return r;
 }

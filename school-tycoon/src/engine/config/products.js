@@ -14,4 +14,8 @@ export const PRODUCTS = {
     grants: ['skin_founder'], perks: ['gold_crest', 'double_login'], loginMultiplier: 2,
     usdReference: 4.99, desc: "Founder's Gold skin + Gold Crest + 2x daily login Apples",
   },
+  designer_bundle_gold: {
+    id: 'designer_bundle_gold', name: 'Designer Bundle: Gold', type: 'nonconsumable', apples: 0,
+    grants: ['furniture_gold'], usdReference: 3.99, desc: 'Gold furniture set (looks only, same stats)',
+  },
 };

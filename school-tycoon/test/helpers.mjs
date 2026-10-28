@@ -45,6 +45,11 @@ export function starterSchool(seed = 12345) {
   );
 }
 
+// Removes weekly goals so exact cash/XP comparisons are not disturbed by goal rewards.
+export function quiet(root) {
+  return { game: { ...root.game, weekly: { week: root.game.weekly.week, goals: [] } }, ledger: root.ledger };
+}
+
 export function withGame(root, patch) {
   return { game: { ...root.game, ...patch }, ledger: root.ledger };
 }

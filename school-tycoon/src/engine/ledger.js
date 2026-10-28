@@ -1,7 +1,7 @@
 // Premium-currency ledger. Every credit carries a unique key; duplicate keys are no-ops.
 import { PRODUCTS, COSMETICS, BALANCE, DEFAULT_EQUIPPED } from './config/index.js';
 
-export const LEDGER_VERSION = 1;
+export const LEDGER_VERSION = 2;
 
 export function createInitialLedger() {
   return {
@@ -12,6 +12,8 @@ export function createInitialLedger() {
     equipped: { ...DEFAULT_EQUIPPED },
     login: { lastDayKey: null, streakIndex: 0 },
     ageGate: null,
+    medals: {},
+    schools: 1,
   };
 }
 
