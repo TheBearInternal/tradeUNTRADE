@@ -7,6 +7,7 @@ import { ACHIEVEMENT_LIST, tierName } from '../catalog.js';
 import { deepEqual, formatMoney } from '../util.js';
 import Btn from '../components/Btn.js';
 import { ProgressBar } from '../components/Meter.js';
+import WeeklyGoalsCard from './WeeklyGoalsCard.js';
 import { colors, font, shared } from '../theme.js';
 
 const selectSchool = (root) => ({
@@ -85,7 +86,7 @@ function XpBar({ xp }) {
   );
 }
 
-export default function SchoolPanel() {
+export default function SchoolPanel({ onOpenScenarios }) {
   const store = useGameStore();
   const s = useGameSelector(selectSchool, deepEqual);
   const doneCount = ACHIEVEMENT_LIST.filter((a) => s.achievements[a.id]).length;
@@ -96,6 +97,13 @@ export default function SchoolPanel() {
       <Tuition step={s.step} income={s.tuitionIncome} onSet={(v) => store.dispatch(actions.setTuition(v))} />
       <Text style={shared.sectionTitle}>Grow your school</Text>
       <TierProgress tier={s.tier} progress={s.progress} onUpgrade={() => store.dispatch(actions.tierUp())} />
+      <Text style={shared.sectionTitle}>Weekly goals</Text>
+      <WeeklyGoalsCard />
+      <Text style={shared.sectionTitle}>New school</Text>
+      <View style={shared.card}>
+        <Text style={shared.small}>Try a scenario with goals and medals, a Sandbox, or a fresh Classic school.</Text>
+        <Btn label="🏫 New School / Scenarios" variant="chalk" onPress={onOpenScenarios} style={styles.scen} />
+      </View>
       <Text style={shared.sectionTitle}>Principal</Text>
       <XpBar xp={s.xp} />
       <Text style={shared.sectionTitle}>Achievements ({doneCount}/{ACHIEVEMENT_LIST.length})</Text>
@@ -134,6 +142,7 @@ const styles = StyleSheet.create({
   big: { fontSize: font.big, fontWeight: '800', color: colors.ink, marginBottom: 6 },
   req: { fontSize: font.body, marginBottom: 4 },
   upgrade: { marginTop: 10, minHeight: 56 },
+  scen: { marginTop: 8 },
   upgradeText: { fontSize: font.big },
   ach: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
   achDone: { backgroundColor: colors.goodLight, borderColor: colors.good },

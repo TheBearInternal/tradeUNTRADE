@@ -2,12 +2,15 @@
 // dialog (confirm / parental gate) > age screen > offline summary > tier-up > event > report card.
 import React, { useEffect, useRef, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { actions } from '../../engine/index.js';
+import { actions, selectScenario } from '../../engine/index.js';
 import { useControls, useGameSelector, useGameStore } from '../GameProvider.js';
 import { useDialogState } from '../state/DialogContext.js';
 import Btn from '../components/Btn.js';
 import { AgeGate, ParentalGate } from './GateModals.js';
-import { EventContent, OfflineContent, ReportCardContent, TierUpContent } from './GameModals.js';
+import {
+  EventContent, OfflineContent, ReportCardContent, ScenarioResultContent, TierUpContent,
+} from './GameModals.js';
+import { deepEqual } from '../util.js';
 import { colors, font, radius } from '../theme.js';
 
 const selectModalState = (root) => ({
@@ -16,6 +19,7 @@ const selectModalState = (root) => ({
   report: root.game.lastReport,
   tier: root.game.tier,
   size: root.game.size,
+  schoolNo: root.game.schoolNo,
 });
 
 export const eventKey = (e) => (e ? `${e.id}:${e.startedDay}:${e.phase}` : null);
@@ -40,18 +44,36 @@ function ConfirmContent({ dialog, onClose }) {
   );
 }
 
-export default function ModalHost() {
+const selectResult = (root) => {
+  const s = selectScenario(root);
+  return s && s.result ? s : null;
+};
+const resultKey = (s) => (s ? `${s.id}:${s.endDay}:${s.result}` : null);
+
+export default function ModalHost({ onOpenScenarios }) {
   const store = useGameStore();
   const controls = useControls();
   const { current: dialog, close } = useDialogState();
   const s = useGameSelector(selectModalState);
   const [celebrate, setCelebrate] = useState(null);
-  const prevTier = useRef(s.tier);
+  const prevTier = useRef({ tier: s.tier, schoolNo: s.schoolNo });
+  const finished = useGameSelector(selectResult, deepEqual);
+  const prevResult = useRef(resultKey(finished));
+  const [result, setResult] = useState(null);
 
   useEffect(() => {
-    if (s.tier > prevTier.current) setCelebrate({ tier: s.tier, size: s.size });
-    prevTier.current = s.tier;
-  }, [s.tier, s.size]);
+    const k = resultKey(finished);
+    if (k && k !== prevResult.current) setResult(finished);
+    prevResult.current = k;
+  }, [finished]);
+
+  useEffect(() => {
+    // Only a tier-up of the same school is celebrated (not starting a Sandbox / scenario at a higher tier).
+    const prev = prevTier.current;
+    if (s.schoolNo === prev.schoolNo && s.tier > prev.tier) setCelebrate({ tier: s.tier, size: s.size });
+    if (s.schoolNo !== prev.schoolNo) setCelebrate(null);
+    prevTier.current = { tier: s.tier, schoolNo: s.schoolNo };
+  }, [s.tier, s.size, s.schoolNo]);
 
   const hasChoices = !!(s.event && s.event.choices && s.event.choices.length);
   const snoozed = hasChoices && controls.eventSnooze === eventKey(s.event);
@@ -81,6 +103,16 @@ export default function ModalHost() {
   } else if (celebrate) {
     content = <TierUpContent tier={celebrate.tier} size={celebrate.size} onClose={() => setCelebrate(null)} />;
     onBack = () => setCelebrate(null);
+  } else if (result) {
+    const done = () => setResult(null);
+    content = (
+      <ScenarioResultContent
+        scenario={result}
+        onClose={done}
+        onScenarios={() => { done(); if (onOpenScenarios) onOpenScenarios(); }}
+      />
+    );
+    onBack = done;
   } else if (hasChoices && !snoozed) {
     const later = () => controls.setEventSnooze(eventKey(s.event));
     content = (

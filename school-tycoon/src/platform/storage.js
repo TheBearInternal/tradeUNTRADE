@@ -59,7 +59,9 @@ export async function loadRoot() {
   }
   if (ledger) {
     // Keep purchases and cosmetics even if the school itself can't be read.
-    const root = tryDeserialize(fresh.game, ledger);
+    // game: null makes the engine start a fresh school with schoolNo = ledger.schools + 1,
+    // so its weekly-goal credit keys can't collide with ones the ledger already holds.
+    const root = tryDeserialize(null, ledger);
     if (root) return { root, savedAt: null, fresh: false, recovered: 'ledgerOnly' };
   }
   if (game) {

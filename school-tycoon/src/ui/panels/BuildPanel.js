@@ -24,6 +24,7 @@ const selectWallet = (root) => ({
 function lockText(def, a) {
   if (a.reason === 'tier') return `🔒 Reach ${tierName(def.tier)}`;
   if (a.reason === 'level') return `🔒 Level ${def.level}`;
+  if (a.reason === 'banned') return '🚫 Not allowed in this scenario';
   return '🔒 Locked';
 }
 
@@ -40,6 +41,8 @@ function RoomRow({ def, avail, wallet, onPick, onEarly }) {
           {`  ·  ${def.w}×${def.h}`}
         </Text>
         {def.desc ? <Text style={shared.tiny}>{def.desc}</Text> : null}
+        {def.edge ? <Text style={styles.rule}>📏 Must touch the edge of the lot</Text> : null}
+        {def.outdoor ? <Text style={styles.rule}>🌳 Outdoor: no hallway needed</Text> : null}
         {!a.available ? <Text style={styles.lock}>{lockText(def, a)}</Text> : null}
         {!a.available && a.canEarlyUnlock ? (
           <Btn
@@ -124,4 +127,5 @@ const styles = StyleSheet.create({
   name: { fontSize: font.body, fontWeight: '800', color: colors.ink },
   lock: { fontSize: font.small, fontWeight: '700', color: colors.inkSoft, marginTop: 4 },
   early: { marginTop: 6, alignSelf: 'flex-start' },
+  rule: { fontSize: font.tiny, fontWeight: '700', color: colors.info, marginTop: 2 },
 });

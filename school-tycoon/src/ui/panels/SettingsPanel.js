@@ -1,12 +1,9 @@
 // Settings: restore purchases, age setting, developer mock-store outcome, reset, about.
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { actions } from '../../engine/index.js';
 import { getSavedAt } from '../../platform/storage.js';
 import { MOCK_OUTCOMES } from '../../platform/store/index.js';
-import { useControls, useGameSelector, useGameStore } from '../GameProvider.js';
-import { useDialogs } from '../state/DialogContext.js';
-import { useToast } from '../state/ToastContext.js';
+import { useControls, useGameSelector } from '../GameProvider.js';
 import Btn from '../components/Btn.js';
 import { colors, font, shared } from '../theme.js';
 
@@ -21,25 +18,9 @@ function savedAtText() {
   return `Last saved ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function SettingsPanel() {
-  const store = useGameStore();
-  const dialogs = useDialogs();
-  const toast = useToast();
+export default function SettingsPanel({ onOpenScenarios }) {
   const controls = useControls();
   const age = useGameSelector(selectAge);
-
-  const reset = async () => {
-    const ok = await dialogs.confirm({
-      title: 'Reset your school?',
-      message: 'This starts a brand-new school from scratch. Your Apples, purchases and cosmetics are kept.',
-      confirmLabel: 'Reset school',
-      destructive: true,
-    });
-    if (!ok) return;
-    store.dispatch(actions.resetSchool((Date.now() % 2147483647) | 0));
-    await controls.saveNow();
-    toast.show('🏫 A fresh new school awaits!', 'good');
-  };
 
   return (
     <ScrollView contentContainerStyle={styles.list}>
@@ -80,7 +61,8 @@ export default function SettingsPanel() {
       <Text style={shared.sectionTitle}>School</Text>
       <View style={shared.card}>
         <Text style={shared.tiny}>{savedAtText()}</Text>
-        <Btn label="Reset School" variant="danger" onPress={reset} style={styles.gapTop} />
+        <Text style={shared.small}>Start over with a Classic school, a scenario or the Sandbox. Apples, cosmetics and medals are kept.</Text>
+        <Btn label="🏫 New School / Scenarios…" variant="chalk" onPress={onOpenScenarios} style={styles.gapTop} />
       </View>
 
       <Text style={[shared.tiny, styles.about]}>

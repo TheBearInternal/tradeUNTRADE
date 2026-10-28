@@ -47,19 +47,21 @@ function ToastItem({ text, kind }) {
   );
 }
 
-export default function ToastHost() {
+export default function ToastHost({ top = 8 }) {
   useLogToasts();
   const toasts = useToastList();
   if (!toasts.length) return null;
   return (
-    <View pointerEvents="none" style={styles.host}>
+    <View pointerEvents="none" style={[styles.host, { top }]}>
       {toasts.map((t) => <ToastItem key={t.id} text={t.text} kind={t.kind} />)}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', top: 8, left: 76, right: 60, alignItems: 'center' },
+  host: {
+    position: 'absolute', left: 76, right: 60, alignItems: 'center', zIndex: 30, elevation: 30,
+  },
   toast: {
     paddingHorizontal: 14,
     paddingVertical: 8,

@@ -79,7 +79,10 @@ function buildStaffOptions() {
 }
 
 export const STAFF_OPTIONS = buildStaffOptions();
-export const ROLE_EMOJI = { teacher: '👩‍🏫', janitor: '🧹', nurse: '🩺' };
+export const ROLE_EMOJI = {
+  teacher: '👩‍🏫', janitor: '🧹', nurse: '🩺', counselor: '🧑‍💼',
+  ...Object.fromEntries(Object.keys(STAFF || {}).filter((r) => STAFF[r].emoji).map((r) => [r, STAFF[r].emoji])),
+};
 
 // ---------- Cosmetics ----------
 export const SLOTS = [
@@ -88,6 +91,7 @@ export const SLOTS = [
   { id: 'mascot', label: 'Mascot' },
   { id: 'uniform', label: 'Uniform' },
   { id: 'skin', label: 'Building skin' },
+  { id: 'furniture', label: 'Furniture set (looks only)' },
 ];
 
 export const COSMETIC_LIST = toList(COSMETICS);

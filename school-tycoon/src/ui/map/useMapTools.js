@@ -1,6 +1,6 @@
 // Tool modes for map taps: inspect, build <type> (ghost + confirm), hallway paint, bulldoze.
 import { useCallback, useRef, useState } from 'react';
-import { actions, selectCanBuild } from '../../engine/index.js';
+import { actions, hasInterior, selectCanBuild } from '../../engine/index.js';
 import { useGameStore } from '../GameProvider.js';
 import { useToast } from '../state/ToastContext.js';
 import { roomDef } from '../catalog.js';
@@ -11,6 +11,8 @@ export const REASON_TEXT = {
   occupied: "Something's already there.",
   cash: 'Not enough cash.',
   locked: "That isn't unlocked yet.",
+  banned: "That room isn't allowed in this scenario.",
+  edge: 'The Bus Stop must touch the edge of the lot.',
 };
 
 /** Cells strictly after `from` up to and including `to` on one row or column. */
@@ -27,7 +29,9 @@ function lineCells(from, to) {
   return cells;
 }
 
-export function useMapTools() {
+const DOUBLE_TAP_MS = 400;
+
+export function useMapTools({ onOpenEditor } = {}) {
   const store = useGameStore();
   const toast = useToast();
   const [tool, setToolState] = useState({ mode: 'inspect' });
@@ -35,6 +39,7 @@ export function useMapTools() {
   const [selected, setSelected] = useState(null); // { roomId } | { hall: {x,y} }
   const [anchor, setAnchor] = useState(null); // last hallway paint tap
   const anchorRef = useRef(null);
+  const lastTap = useRef({ id: null, t: 0 });
 
   const setAnchorBoth = (a) => {
     anchorRef.current = a;
@@ -109,10 +114,19 @@ export function useMapTools() {
         break;
       default:
         if (cell === 'hall') setSelected({ hall: { x, y } });
-        else if (cell) setSelected({ roomId: cell });
-        else setSelected(null);
+        else if (cell) {
+          const now = Date.now();
+          const room = game.rooms[cell];
+          if (lastTap.current.id === cell && now - lastTap.current.t < DOUBLE_TAP_MS && room && hasInterior(room.type) && onOpenEditor) {
+            lastTap.current = { id: null, t: 0 };
+            onOpenEditor(cell);
+            return;
+          }
+          lastTap.current = { id: cell, t: now };
+          setSelected({ roomId: cell });
+        } else setSelected(null);
     }
-  }, [store, tool, paintHall, sellAt]);
+  }, [store, tool, paintHall, sellAt, onOpenEditor]);
 
   const confirmBuild = useCallback(() => {
     if (tool.mode !== 'build' || !ghost) return;

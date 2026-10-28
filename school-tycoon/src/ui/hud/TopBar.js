@@ -15,6 +15,7 @@ const selectHud = (root) => {
   const t = selectTimeLabel(root);
   return {
     cash: g.cash,
+    sandbox: g.mode === 'sandbox',
     net: selectDailyPnL(root).net,
     students: g.students,
     capacity: selectCapacity(root),
@@ -48,7 +49,7 @@ export default function TopBar({ topInset }) {
       <View style={styles.row}>
         <View style={styles.cashBox} accessible accessibilityLabel={`Cash ${formatMoney(h.cash)}, ${formatSignedMoney(h.net)} per day`}>
           <Text style={[styles.cash, h.cash < 0 && styles.cashNeg]} numberOfLines={1}>
-            💵 {formatMoney(h.cash)}
+            💵 {h.sandbox ? '∞' : formatMoney(h.cash)}
           </Text>
           <Text style={[styles.net, { color: netColor }]} numberOfLines={1}>{formatSignedMoney(h.net)}/day</Text>
         </View>

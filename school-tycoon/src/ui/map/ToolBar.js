@@ -71,7 +71,7 @@ function SimpleBar({ title, hint, children }) {
 }
 
 /** Bottom bar for the active tool; returns null when nothing needs showing. */
-export function ToolContextBar({ tools }) {
+export function ToolContextBar({ tools, onDesign }) {
   const { tool, ghost, selected, anchor } = tools;
   const done = () => tools.setTool({ mode: 'inspect' });
   if (tool.mode === 'build') {
@@ -96,7 +96,7 @@ export function ToolContextBar({ tools }) {
     );
   }
   if (selected) {
-    return <RoomInfoCard selection={selected} onSell={tools.sellSelected} onClose={tools.clearSelected} />;
+    return <RoomInfoCard selection={selected} onSell={tools.sellSelected} onClose={tools.clearSelected} onDesign={onDesign} />;
   }
   return null;
 }

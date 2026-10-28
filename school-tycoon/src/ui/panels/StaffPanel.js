@@ -52,6 +52,7 @@ export default function StaffPanel() {
     <View>
       <Text style={shared.small}>
         Teachers are assigned to classrooms automatically, best teacher to the best room. Janitors keep things clean.
+        Nurses work in the Nurse's Office; Counselors in the Counselor's Office (half as many students leave).
       </Text>
       <Text style={shared.sectionTitle}>Hire</Text>
       {STAFF_OPTIONS.map((opt) => (

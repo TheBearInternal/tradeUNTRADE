@@ -1,6 +1,7 @@
 // Content for game-driven modals: event decision, report card, offline summary, tier-up.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { EVENTS } from '../../engine/index.js';
 import Btn from '../components/Btn.js';
 import { tierName } from '../catalog.js';
 import { formatMoney, formatSignedMoney } from '../util.js';
@@ -20,20 +21,27 @@ const EVENT_COPY = {
 };
 
 export function EventContent({ event, onChoose, onLater }) {
-  const copy = EVENT_COPY[event.id] || { icon: '📣', title: 'Something happened!', body: '' };
+  const pack = EVENTS && EVENTS[event.id];
+  const copy = EVENT_COPY[event.id] || { icon: (pack && pack.emoji) || '📣', title: (pack && pack.name) || 'Something happened!', body: '' };
+  const choices = event.choices || [];
+  const titleHasEmoji = pack && event.title && event.title.includes(pack.emoji);
   return (
     <View>
-      <Text style={styles.icon}>{copy.icon}</Text>
+      {titleHasEmoji ? null : <Text style={styles.icon}>{copy.icon}</Text>}
       <Text style={styles.title}>{event.title || copy.title}</Text>
       <Text style={styles.body}>{event.text || event.description || copy.body}</Text>
-      {(event.choices || []).map((c, i) => (
+      {choices.map((c, i) => (
         <View key={c.id} style={styles.choice}>
           <Btn label={c.label} variant={i === 0 ? 'primary' : 'chalk'} onPress={() => onChoose(c.id)} />
           {c.desc || c.description ? <Text style={styles.choiceDesc}>{c.desc || c.description}</Text> : null}
         </View>
       ))}
-      <Text style={styles.hint}>If you don't decide within 2 days, the first option is picked.</Text>
-      <Btn label="Decide later" variant="ghost" small onPress={onLater} />
+      {choices.length > 1 ? (
+        <>
+          <Text style={styles.hint}>If you don't decide within 2 days, the first option is picked.</Text>
+          <Btn label="Decide later" variant="ghost" small onPress={onLater} />
+        </>
+      ) : null}
     </View>
   );
 }
@@ -71,6 +79,12 @@ export function ReportCardContent({ report, onClose }) {
       <Line label="Total costs" value={formatMoney(-costs)} />
       <Line label="Net" value={formatSignedMoney(report.net)} color={report.net >= 0 ? colors.good : colors.bad} />
       <Line label="Students" value={`${report.studentsStart} → ${report.studentsEnd}`} />
+      {report.suggestBreak ? (
+        <View style={styles.breakBox}>
+          <Text style={styles.breakText}>🌈 {report.breakMessage || 'Great term — good time for a break!'}</Text>
+          <Text style={styles.breakSub}>Your school is saved and nothing gets worse while you're away.</Text>
+        </View>
+      ) : null}
       <Btn label="Back to school" variant="primary" onPress={onClose} style={styles.cta} />
     </View>
   );
@@ -103,7 +117,31 @@ export function TierUpContent({ tier, size, onClose }) {
   );
 }
 
+const MEDALS = { bronze: '🥉', silver: '🥈', gold: '🥇' };
+
+export function ScenarioResultContent({ scenario, onClose, onScenarios }) {
+  const failed = scenario.result === 'failed';
+  return (
+    <View>
+      <Text style={styles.bigIcon}>{failed ? '🏁' : MEDALS[scenario.result]}</Text>
+      <Text style={styles.title}>{scenario.name} complete!</Text>
+      <Text style={styles.body}>
+        {failed ? 'No medal this time, but every run teaches something. Try again whenever you like.'
+          : `You earned a ${scenario.result} medal!`}
+      </Text>
+      {scenario.goals.map((g) => (
+        <Text key={g.label} style={styles.goalLine}>{g.met ? '✅' : '⬜'} {g.label}</Text>
+      ))}
+      {scenario.bestMedal ? <Text style={styles.hint}>Best medal: {MEDALS[scenario.bestMedal]} {scenario.bestMedal}</Text> : null}
+      <Text style={styles.hint}>Your school keeps running, so feel free to keep playing.</Text>
+      <Btn label="Keep playing" variant="primary" onPress={onClose} style={styles.cta} />
+      <Btn label="Pick another scenario" variant="ghost" small onPress={onScenarios} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  goalLine: { fontSize: font.body, color: colors.ink, marginBottom: 4 },
   icon: { fontSize: 44, textAlign: 'center' },
   bigIcon: { fontSize: 48, textAlign: 'center' },
   kicker: { fontSize: font.small, color: colors.inkSoft, textAlign: 'center', fontWeight: '700' },
@@ -126,4 +164,7 @@ const styles = StyleSheet.create({
   gradeInfo: { flex: 1, marginLeft: 12 },
   stars: { fontSize: font.big },
   cta: { marginTop: 14, minHeight: 48 },
+  breakBox: { marginTop: 12, padding: 10, borderRadius: radius.md, backgroundColor: colors.chalkLight },
+  breakText: { fontSize: font.body, fontWeight: '800', color: colors.chalk, textAlign: 'center' },
+  breakSub: { fontSize: font.small, color: colors.inkSoft, textAlign: 'center', marginTop: 2 },
 });

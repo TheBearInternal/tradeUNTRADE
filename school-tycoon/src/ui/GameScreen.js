@@ -1,10 +1,13 @@
 // Main screen: HUD on top, pannable map in the middle, tab bar + sheet panels at the bottom.
+// Full-screen overlays: the isometric room editor and the New School / Scenarios screen.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { hasInterior } from '../engine/index.js';
 import { useGameSelector, useGameStore } from './GameProvider.js';
 import TopBar from './hud/TopBar.js';
 import BubbleStrip from './hud/BubbleStrip.js';
+import ScenarioChip from './hud/ScenarioChip.js';
 import ToastHost from './hud/ToastHost.js';
 import MapViewport from './map/MapViewport.js';
 import MapContent from './map/MapContent.js';
@@ -17,6 +20,8 @@ import StaffPanel from './panels/StaffPanel.js';
 import SchoolPanel from './panels/SchoolPanel.js';
 import ShopPanel from './panels/ShopPanel.js';
 import SettingsPanel from './panels/SettingsPanel.js';
+import ScenarioScreen from './panels/ScenarioScreen.js';
+import RoomEditor from './editor/RoomEditor.js';
 import ModalHost from './modals/ModalHost.js';
 import { colors } from './theme.js';
 
@@ -27,7 +32,15 @@ export default function GameScreen() {
   const insets = useSafeAreaInsets();
   const store = useGameStore();
   const size = useGameSelector(selSize);
-  const tools = useMapTools();
+  const [editorRoomId, setEditorRoomId] = useState(null);
+  const [scenariosOpen, setScenariosOpen] = useState(false);
+  const [mapTop, setMapTop] = useState(160);
+  const openEditor = useCallback((roomId) => {
+    const room = store.getState().game.rooms[roomId];
+    if (room && hasInterior(room.type)) setEditorRoomId(roomId);
+  }, [store]);
+  const closeEditor = useCallback(() => setEditorRoomId(null), []);
+  const tools = useMapTools({ onOpenEditor: openEditor });
   const [tab, setTab] = useState(null);
   const [highlightId, setHighlightId] = useState(null);
   const [focus, setFocus] = useState(null);
@@ -35,10 +48,14 @@ export default function GameScreen() {
 
   useEffect(() => () => hiTimer.current && clearTimeout(hiTimer.current), []);
 
-  const onBubble = useCallback((roomId) => {
+  const onBubble = useCallback((roomId, bubble) => {
     const room = store.getState().game.rooms[roomId];
     if (!room) return;
     setTab(null);
+    if (bubble && bubble.icon === '🪑' && hasInterior(room.type)) {
+      setEditorRoomId(roomId);
+      return;
+    }
     setHighlightId(roomId);
     setFocus({ x: room.x + room.w / 2 - 0.5, y: room.y + room.h / 2 - 0.5, key: Date.now() });
     if (hiTimer.current) clearTimeout(hiTimer.current);
@@ -55,23 +72,32 @@ export default function GameScreen() {
     tools.onTapTile(x, y);
   }, [tab, tools]);
 
+  const openScenarios = useCallback(() => {
+    setTab(null);
+    setEditorRoomId(null);
+    tools.setTool({ mode: 'inspect' });
+    setScenariosOpen(true);
+  }, [tools]);
+
   const renderPanel = () => {
     switch (tab) {
       case 'build': return <BuildPanel onPick={onPickRoom} />;
       case 'staff': return <StaffPanel />;
-      case 'school': return <SchoolPanel />;
+      case 'school': return <SchoolPanel onOpenScenarios={openScenarios} />;
       case 'shop': return <ShopPanel />;
-      case 'settings': return <SettingsPanel />;
+      case 'settings': return <SettingsPanel onOpenScenarios={openScenarios} />;
       default: return null;
     }
   };
   const tabTitle = (TABS.find((t) => t.id === tab) || {}).label;
+  const overlayOpen = !!editorRoomId || scenariosOpen;
 
   return (
     <View style={styles.screen}>
       <TopBar topInset={insets.top} />
+      <ScenarioChip onPress={openScenarios} />
       <BubbleStrip onBubble={onBubble} />
-      <View style={styles.mapArea}>
+      <View style={styles.mapArea} onLayout={(e) => setMapTop(e.nativeEvent.layout.y)}>
         <MapViewport
           size={size}
           onTapTile={onTapTile}
@@ -80,9 +106,8 @@ export default function GameScreen() {
         />
         <ToolRail tool={tools.tool} onSelect={tools.setTool} />
         <View style={styles.contextBar} pointerEvents="box-none">
-          <ToolContextBar tools={tools} />
+          <ToolContextBar tools={tools} onDesign={openEditor} />
         </View>
-        <ToastHost />
         {tab ? (
           <Sheet title={tabTitle} onClose={() => setTab(null)}>
             {renderPanel()}
@@ -90,7 +115,10 @@ export default function GameScreen() {
         ) : null}
       </View>
       <TabBar active={tab} onSelect={setTab} bottomInset={insets.bottom} />
-      <ModalHost />
+      {editorRoomId ? <RoomEditor roomId={editorRoomId} onClose={closeEditor} /> : null}
+      {scenariosOpen ? <ScenarioScreen onClose={() => setScenariosOpen(false)} /> : null}
+      <ToastHost top={overlayOpen ? insets.top + 64 : mapTop + 8} />
+      <ModalHost onOpenScenarios={openScenarios} />
     </View>
   );
 }

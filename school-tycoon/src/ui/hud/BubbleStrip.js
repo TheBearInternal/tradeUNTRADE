@@ -43,7 +43,7 @@ export default function BubbleStrip({ onBubble }) {
         {bubbles.map((b, i) => (
           <Pressable
             key={`${b.icon}${b.text}${b.roomId || ''}${i}`}
-            onPress={() => b.roomId && onBubble(b.roomId)}
+            onPress={() => b.roomId && onBubble(b.roomId, b)}
             hitSlop={HIT_SLOP}
             accessibilityRole={b.roomId ? 'button' : 'text'}
             accessibilityLabel={b.text}

@@ -1,7 +1,7 @@
 // Inspect card for the tapped room: connectivity, distances, lateness, upkeep, Sell.
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { selectDerived } from '../../engine/index.js';
+import { hasInterior, selectDerived, selectRoomQuality } from '../../engine/index.js';
 import { useGameSelector } from '../GameProvider.js';
 import { roomDef } from '../catalog.js';
 import { formatMoney, pct } from '../util.js';
@@ -10,13 +10,17 @@ import { colors, font, shared } from '../theme.js';
 
 const dist = (d) => (d == null || d >= 99 ? 'none reachable' : `${d} tiles`);
 
-export default function RoomInfoCard({ selection, onSell, onClose }) {
+export default function RoomInfoCard({ selection, onSell, onClose, onDesign }) {
   const info = useGameSelector((root) => {
     if (selection.hall) return { hall: true };
     const room = root.game.rooms[selection.roomId];
     if (!room) return null;
     const d = selectDerived(root);
-    return { room, connected: d.connected[room.id], stats: d.roomStats[room.id] || null };
+    const q = selectRoomQuality(root, room.id);
+    return {
+      room, connected: d.connected[room.id], stats: d.roomStats[room.id] || null,
+      score: q ? Math.round(q.score) : null, missing: q && q.missing ? q.missing.join(', ') : '',
+    };
   });
   if (!info) return null;
 
@@ -33,7 +37,7 @@ export default function RoomInfoCard({ selection, onSell, onClose }) {
     );
   }
 
-  const { room, connected, stats } = info;
+  const { room, connected, stats, score, missing } = info;
   const def = roomDef(room.type);
   const isOffice = def.kind === 'office';
   const isDecor = def.kind === 'decor';
@@ -56,10 +60,15 @@ export default function RoomInfoCard({ selection, onSell, onClose }) {
           <Text style={styles.stat}>⏰ Late to class: {pct(stats.late)}</Text>
         </View>
       ) : null}
+      {score != null ? <Text style={styles.line}>🛋️ Interior quality {score}/100</Text> : null}
+      {missing ? <Text style={[styles.line, { color: colors.bad }]}>🪑 Missing: {missing}</Text> : null}
       {!isOffice ? <Text style={shared.tiny}>Upkeep ≈ {formatMoney(upkeep)}/day · Size {def.w}×{def.h}</Text> : null}
       <View style={styles.actions}>
         {!isOffice ? (
           <Btn label={`Sell for ${formatMoney(Math.floor(cost / 2))}`} variant="danger" small onPress={onSell} />
+        ) : null}
+        {hasInterior(room.type) && onDesign ? (
+          <Btn label="🛋️ Design interior" variant="primary" small onPress={() => onDesign(room.id)} style={styles.gap} />
         ) : null}
         <Btn label="Close" small onPress={onClose} style={styles.gap} />
       </View>
@@ -73,6 +82,6 @@ const styles = StyleSheet.create({
   line: { fontSize: font.small, fontWeight: '700', marginTop: 6 },
   stats: { flexDirection: 'row', flexWrap: 'wrap', marginTop: 6 },
   stat: { fontSize: font.small, color: colors.ink, marginRight: 12, marginBottom: 2 },
-  actions: { flexDirection: 'row', marginTop: 8, justifyContent: 'flex-end' },
+  actions: { flexDirection: 'row', marginTop: 8, justifyContent: 'flex-end', flexWrap: 'wrap' },
   gap: { marginLeft: 8 },
 });
